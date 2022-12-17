@@ -32,7 +32,6 @@ class AppConfig:
         port: int = environ.var(default=8000, converter=int)
     api: ApiConfig = environ.group(ApiConfig)
     
-print(os.environ)
 cfg: AppConfig = AppConfig.from_environ(os.environ)
 
 __all__ = [cfg]

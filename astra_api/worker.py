@@ -26,17 +26,18 @@ redis_broker = RedisBroker(
 dramatiq.set_broker(redis_broker)
 
 
-def preprocess_file(item_input: ItemInputForm):
-    hash = crc32(item_input.file)
-    id = uuid.UUID(fields=(hash, len(item_input.file)))
+def preprocess_file(file: bytes, model: str):
+    hash = crc32(file)
+    id = uuid.UUID(fields=(hash, len(file)))
     filepath = cfg.temp_directory / id
     with open(filepath, 'wb') as f:
-        f.write(item_input.file)
+        f.write(file)
     
     return ItemInput(
         id=id,
         filepath=filepath,
-        hash=hash
+        hash=hash,
+        model=model
     )
 
 @dramatiq.actor
