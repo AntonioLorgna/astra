@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    command: uvicorn astra_api.api:app --host 0.0.0.0
+    volumes:
+      - .:/astra
+    ports:
+      - 8008:8000
+    expose:
+      - 8008
+    networks:
+      - net1
+    env_file:
+      - app.env
+
+  redis:
+    restart: unless-stopped
+    image: redis:latest
+    volumes:
+      - ./compose/redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - net1
+
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      #POSTGRES_DB:
+      POSTGRES_MULTIPLE_DATABASES: sentry,myproject
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./compose/postgres_data/initdb:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    networks:
+      - net1
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  net1:
