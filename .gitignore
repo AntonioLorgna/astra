@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# Whisper models folder
+/models
+
+# Temporary files
+/temp
