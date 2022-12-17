@@ -6,6 +6,7 @@ services:
     command: uvicorn astra_api.api:app --host 0.0.0.0
     volumes:
       - .:/astra
+      - ./compose/astra_data:/astra/astra_data
     ports:
       - 8008:8000
     expose:
@@ -30,8 +31,8 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      #POSTGRES_DB:
-      POSTGRES_MULTIPLE_DATABASES: sentry,myproject
+      POSTGRES_DB: astra_api
+      # POSTGRES_MULTIPLE_DATABASES: astra
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./compose/postgres_data/initdb:/docker-entrypoint-initdb.d
@@ -44,6 +45,7 @@ services:
 volumes:
   redis_data:
   postgres_data:
+
 
 networks:
   net1:

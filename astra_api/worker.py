@@ -1,6 +1,5 @@
 from urllib.parse import urlparse
 from datetime import datetime
-import uuid
 from zlib import crc32
 
 import dramatiq
@@ -8,7 +7,7 @@ from dramatiq.brokers.redis import RedisBroker
 from sqlmodel import Session, select, or_
 
 from astra_api.db import engine
-from astra_api.models import Item, ItemInput, ItemInputForm
+from astra_api.models import Item, ItemInput
 from astra_api.whisper import Whisper
 from astra_api.settings import cfg
 
@@ -27,29 +26,21 @@ dramatiq.set_broker(redis_broker)
 
 
 def preprocess_file(file: bytes, model: str):
-    hash = crc32(file)
-    id = uuid.UUID(fields=(hash, len(file)))
-    filepath = cfg.temp_directory / id
-    with open(filepath, 'wb') as f:
+    item = ItemInput(
+        hash=crc32(file) + len(file),
+        model=model)
+
+    item.filepath = cfg.temp_directory / str(item.id)
+    with open(item.filepath, 'wb') as f:
         f.write(file)
     
-    return ItemInput(
-        id=id,
-        filepath=filepath,
-        hash=hash,
-        model=model
-    )
+    return item
 
 @dramatiq.actor
 def transcribe(item_json: str):
     item = ItemInput.parse_raw(item_json)
     with Session(engine) as session:
-        statement = select(Item)\
-            .where(or_(\
-                Item.id == item.id, \
-                Item.hash == item.hash))
-
-        item_db = session.exec(statement).one_or_none()
+        item_db = session.get(Item, item.id)
 
         if item_db is None:
             item_db = Item(**item.dict())

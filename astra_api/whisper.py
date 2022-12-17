@@ -8,11 +8,4 @@ class Whisper:
     @staticmethod
     def transcribe(file_path: Path, model: str):
         Whisper.loaded_models.append(model)
-        return {
-            "name": "такое крутое распознавание голоса",
-            "text": "суперское просто",
-            "filepath": str(file_path.resolve()),
-            "model": model,
-            "loaded_models": Whisper.loaded_models,
-            "now": datetime.now().isoformat(),
-        }
+        return "такое крутое распознавание голоса"

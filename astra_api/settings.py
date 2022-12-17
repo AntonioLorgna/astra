@@ -4,13 +4,13 @@ from pathlib import Path
 
 @environ.config
 class AppConfig:    
-    temp_directory: Path = environ.var(converter=Path, default=Path('./temp'))
+    temp_directory: Path = environ.var(converter=Path, default=Path('./astra_data/temp'))
 
     @environ.config
     class WhisperConfig:
         models: list = environ.var(converter=lambda s: s.split(), default='tiny small base')
         default_model: str = environ.var(default='small')
-        model_directory: Path = environ.var(converter=Path, default='./models')
+        model_directory: Path = environ.var(converter=Path, default='./astra_data/models')
     whisper: WhisperConfig = environ.group(WhisperConfig)
     
 
@@ -33,5 +33,8 @@ class AppConfig:
     api: ApiConfig = environ.group(ApiConfig)
     
 cfg: AppConfig = AppConfig.from_environ(os.environ)
+
+cfg.temp_directory.mkdir(parents=True, exist_ok=True)
+cfg.whisper.model_directory.mkdir(parents=True, exist_ok=True)
 
 __all__ = [cfg]

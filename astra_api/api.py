@@ -24,7 +24,7 @@ def root_redirect():
     
     response_model=models.ItemInput)
 def add_item(
-    model: models._models_literal = cfg.whisper.default_model, 
+    model: str = cfg.whisper.default_model, 
     file: bytes = File(format=[".mp3",".ogg",".flac"], max_length=2<<24)):
 
     item_input = worker.preprocess_file(file=file, model=model)
