@@ -17,7 +17,7 @@ class AppConfig:
     @environ.config
     class TaskQueueConfig:
         broker_uri: str = environ.var()
-        remove_source_files: bool = environ.var(converter=bool, default='True')
+        remove_source_files: bool = environ.bool_var(default=True)
     taskqueue: TaskQueueConfig = environ.group(TaskQueueConfig)  
 
     @environ.config
@@ -36,5 +36,7 @@ cfg: AppConfig = AppConfig.from_environ(os.environ)
 
 cfg.temp_directory.mkdir(parents=True, exist_ok=True)
 cfg.whisper.model_directory.mkdir(parents=True, exist_ok=True)
+
+print(cfg)
 
 __all__ = [cfg]
