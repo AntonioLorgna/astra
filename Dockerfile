@@ -6,8 +6,7 @@ ENV PYTHONUNBUFFERED 1
 
 
 WORKDIR /astra
-RUN chown -R $USER:$USER /astra
-RUN chmod 755 /astra
+RUN chown -R $USER:$USER /astra && chmod 755 /astra
 USER $USER
 
 ENV VIRTUAL_ENV=/opt/venv
@@ -18,11 +17,12 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/apt \
     apt-get update && apt-get install -y git
 
-# Install dependencies
-COPY requirements.txt .
-#RUN pip install -r requirements.txt
+COPY . .
+
+# COPY requirements.txt .
+# RUN pip install -r requirements.txt
+# Установка зависимостей в порядке их записи
 RUN --mount=type=cache,target=/root/.cache/pip \
     cat requirements.txt | xargs -n 1 pip install
 
-COPY . .
 
