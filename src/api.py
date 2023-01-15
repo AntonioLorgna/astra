@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from uuid import uuid4
+from celery.result import AsyncResult
 
 load_dotenv('.env')
 
@@ -24,7 +25,7 @@ def root_redirect():
 def run_test_task(args: TestTaskArgs):
     
     task = celery_worker.test_task.delay(args.a, args.b, args.c)
-    return JSONResponse(dict(task.get()))
+    return JSONResponse(task.get())
 
 
 @app.post("/task",
@@ -44,11 +45,12 @@ def add_task(
     if not filepath.is_file():
         filepath.write_bytes(file_bytes)
 
-    task = celery_worker.test_transcribe.apply_async(args=(model, filehash, filename), task_id=id)
+    celery_worker.test_transcribe.apply_async(args=(model, filehash, filename), task_id=id)
 
     return JSONResponse({
         "id": id
     })
+
 
 @app.get("/files/{task_uuid}")
 def get_file(task_uuid:str):
@@ -58,3 +60,51 @@ def get_file(task_uuid:str):
         return HTTPException(404)
 
     return FileResponse(files[0])
+
+
+@app.get("/task/status/{id}")
+def task_status(id: str):
+    res = AsyncResult(id=id, app=celery_worker.celery)
+
+    if res.status == 'PENDING':
+        return HTTPException(404)
+        
+    return JSONResponse({"status": res.status})
+
+
+@app.get("/task/{id}")
+def task_result(id: str):
+    res = AsyncResult(id=id, app=celery_worker.celery)
+
+    if res.status == 'SUCCESS':
+        return JSONResponse({
+            "status": res.status, 
+            "result": res.result
+            })
+
+    if res.status == 'FAILURE':
+        return JSONResponse({
+            "status": res.status, 
+            "message": res.result, 
+            "traceback": res.traceback
+            })
+
+    if res.status == 'PENDING':
+        return HTTPException(404)
+
+    return JSONResponse({"status": res.status})
+
+
+@app.delete("/task/{id}")
+def task_abort(id: str):
+    res = AsyncResult(id=id, app=celery_worker.celery)
+
+    if res.status in ['STARTED', 'RETRY']:
+        res.revoke(terminate=True, wait=True)
+        return JSONResponse({"status": None})
+
+    if res.status == 'PENDING':
+        return HTTPException(404)
+
+    return JSONResponse({"status": res.status})
+

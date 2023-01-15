@@ -7,9 +7,12 @@ from random import randint
 
 load_dotenv(".env")
 
-MEDIA_DIR = Path(os.environ.get("WORKER_MEDIA_DIR"))
+IS_WORKER = not bool(os.environ.get("IS_CELERY_APP", False))
+
+MEDIA_DIR = Path(os.environ.get("WORKER_MEDIA_DIR", None if IS_WORKER else "./" ))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 FILES_ENDPOINT = os.environ.get("FILES_ENDPOINT")
+
 
 celery = Celery(__name__)
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL")

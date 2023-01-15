@@ -23,6 +23,11 @@ COPY requirements.txt .
 # Установка зависимостей в порядке их записи
 RUN --mount=type=cache,target=/root/.cache/pip \
     cat requirements.txt | xargs -n 1 pip install
+
+
+COPY requirements_worker.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    cat requirements_worker.txt | xargs -n 1 pip install
     
 COPY . .
 
