@@ -1,14 +1,12 @@
-from pathlib import Path
 from urllib.parse import urlparse
 from datetime import datetime
-from zlib import crc32
 
-import dramatiq
+import dramatiq, bson
 from dramatiq.brokers.redis import RedisBroker
 from sqlmodel import Session, select, or_, and_
 
 from astra_api.db import engine
-from astra_api.models import Item, ItemInput
+from astra_api.models import Item
 from astra_api.whisper import Whisper
 from astra_api.settings import cfg
 
@@ -25,22 +23,17 @@ redis_broker = RedisBroker(
 )
 dramatiq.set_broker(redis_broker)
 
+class BSONEncoder(dramatiq.encoder.Encoder):
+    encode = bson.dumps
+    decode = bson.loads
 
-def preprocess_file(file: bytes, model: str):
-    item = ItemInput(
-        hash=crc32(file) + len(file),
-        model=model)
+dramatiq.set_encoder(BSONEncoder)
 
-    filepath = cfg.temp_directory / str(item.id)
-
-    with open(filepath, 'wb') as f:
-        f.write(file)
-    item.filepath = str(filepath.resolve())
-    return item
 
 @dramatiq.actor
-def transcribe(item_json: str):
-    item = ItemInput.parse_raw(item_json)
+def transcribe(item_bson: bytes):
+    item = Item(**bson.loads(item_bson))
+    item_bson = None
     with Session(engine) as session:
         sentence = select(Item).where(or_(Item.id == item.id, and_(Item.hash == item.hash, Item.model == item.model))).limit(1)
         item_db = session.exec(sentence).one_or_none()
@@ -51,13 +44,8 @@ def transcribe(item_json: str):
             item_dict = item.dict(exclude_unset=True)
             for key, value in item_dict.items():
                 setattr(item_db, key, value)
-        filepath = Path(item_db.filepath)
-        item_db.result = Whisper.transcribe(filepath, item_db.model)
+        item_db.result = Whisper.transcribe(item_db.file, item_db.model)
         item_db.updated_at = datetime.utcnow()
-
-        if cfg.taskqueue.remove_source_files:
-            filepath.unlink(missing_ok=True)
-            item_db.filepath = None
 
         session.add(item_db)
         session.commit()

@@ -1,11 +1,17 @@
 from datetime import datetime
 from pathlib import Path
+import bson
 # import stable_whisper 
 
 class Whisper:
     loaded_models = list()
 
     @staticmethod
-    def transcribe(file_path: Path, model: str):
+    def transcribe(file: bytes, model: str):
         Whisper.loaded_models.append(model)
-        return "такое крутое распознавание голоса"
+        result = {
+            "name": "супер имя",
+            "text": "супер пупер мега крутой \nтекст"
+        }
+
+        return bson.dumps(result)

@@ -4,6 +4,7 @@ from pathlib import Path
 
 @environ.config
 class AppConfig:    
+    dev: bool = environ.bool_var(default=False)
     temp_directory: Path = environ.var(converter=Path, default=Path('./astra_data/temp'))
 
     @environ.config

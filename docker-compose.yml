@@ -5,13 +5,10 @@ services:
     build: .
     command: uvicorn astra_api.api:app --host 0.0.0.0
     volumes:
-      - type: bind
-        source: ./compose/astra_data
-        target: /astra_data
+      - ./compose/astra_data:/astra_data
     ports:
       - 8008:8000
-    expose:
-      - 8008
+      - 5678:5678
     networks:
       - net1
     env_file:
