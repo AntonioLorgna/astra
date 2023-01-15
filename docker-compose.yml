@@ -1,57 +1,82 @@
 version: '3.8'
 
 services:
-  api:
+  app:
     build: .
-    command: uvicorn astra_api.api:app --host 0.0.0.0
+    command: uvicorn src.api:app --host 0.0.0.0
     volumes:
-      - ./compose/astra_data:/astra_data
+      - ./data/astra:/astra/data
     ports:
-      - 8008:8000
-      - 5678:5678
-    networks:
-      - net1
+      - 8000:8000
+      # - 5678:5678
     env_file:
       - app.env
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
 
   redis:
     restart: unless-stopped
-    image: redis:latest
+    image: redis:alpine
     volumes:
-      - ./compose/redis_data:/data
+      - ./data/redis:/data
     ports:
       - "6379:6379"
-    networks:
-      - net1
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
 
-  postgres:
-    image: postgres:15
-    environment:
-      PGUSER: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: astra
-      # POSTGRES_MULTIPLE_DATABASES: astra
+  celery_worker:
+    container_name: celery_worker
+    build: .
+    command: celery -A src.celery_worker.celery worker --loglevel=info
     volumes:
-      - ./compose/postgres_data/data:/var/lib/postgresql/data
-      - ./compose/postgres_data/initdb:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+      - ./data/astra:/astra/data
+    env_file:
+      - app.env
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  flower:
+    container_name: flower
+    build: .
+    command: celery -A src.celery_worker.celery flower --port=5555 --persistent=True
     ports:
-      - "5432:5432"
-    networks:
-      - net1
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - 5555:5555
+    volumes:
+      - ./data/astra:/astra/data
+    env_file:
+      - app.env
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     PGUSER: postgres
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: astra
+  #     # POSTGRES_MULTIPLE_DATABASES: astra
+  #   volumes:
+  #     - ./compose/postgres_data/data:/var/lib/postgresql/data
+  #     - ./compose/postgres_data/initdb:/docker-entrypoint-initdb.d
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - net1
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
 
   # pgadmin:
   #   image: chorss/docker-pgadmin4
@@ -60,6 +85,3 @@ services:
   #   networks:
   #     - net1
     
-
-networks:
-  net1:
