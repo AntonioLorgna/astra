@@ -1,4 +1,4 @@
-FROM python:3.10.9-slim
+FROM python:3.10.9-slim-bullseye
 
 # set env variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -17,14 +17,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/apt \
     apt-get update && apt-get install -y git
 
-
-COPY requirements.txt .
-# RUN pip install -r requirements.txt
 # Установка зависимостей в порядке их записи
-RUN --mount=type=cache,target=/root/.cache/pip \
-    cat requirements.txt | xargs -n 1 pip install
-
-
 COPY requirements_worker.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     cat requirements_worker.txt | xargs -n 1 pip install
