@@ -1,4 +1,10 @@
-FROM python:3.10.9-slim-bullseye
+FROM nvidia/cuda:12.0.0-runtime-ubuntu22.04
+
+RUN apt update && \
+    apt install --no-install-recommends -y build-essential software-properties-common git ffmpeg && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt install --no-install-recommends -y python3.10 python3-pip python3-setuptools python3-distutils && \
+    apt clean && rm -rf /var/lib/apt/lists/*
 
 # set env variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -9,17 +15,10 @@ WORKDIR /astra
 RUN chown -R $USER:$USER /astra && chmod 755 /astra
 USER $USER
 
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-
-RUN --mount=type=cache,target=/root/.cache/apt \
-    apt-get update && apt-get install -y git
-
 # Установка зависимостей в порядке их записи
 COPY requirements_worker.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
+    python3.10 -m pip install --upgrade pip && \
     cat requirements_worker.txt | xargs -n 1 pip install
     
 COPY . .
