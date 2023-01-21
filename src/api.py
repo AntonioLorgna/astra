@@ -3,7 +3,6 @@ from sys import stdout
 from typing import List
 from fastapi import FastAPI, File, HTTPException, status, UploadFile, BackgroundTasks
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
-from fastapi.concurrency import run_in_threadpool
 from pydantic import UUID4
 from .schema import TestTaskArgs
 from . import celery_worker
@@ -19,11 +18,16 @@ from sqlmodel import Session, select
 from . import whisper_models
 import logging
 
+if os.environ.get('DEV', False):
+    import debugpy
+    debugpy.listen(('0.0.0.0', 7999))
+
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO) # set logger level
 logFormatter = logging.Formatter\
 ("%(levelname)-8s: %(message)s")
+
 consoleHandler = logging.StreamHandler(stdout) #set streamhandler to stdout
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)

@@ -1,9 +1,20 @@
+from sys import stdout
 from celery import Celery
+from celery.app import defaults as celery_defaults
 from dotenv import load_dotenv
 import os, time, requests
 from pathlib import Path
 from zlib import crc32
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO) # set logger level
+logFormatter = logging.Formatter\
+(celery_defaults.DEFAULT_TASK_LOG_FMT)
+consoleHandler = logging.StreamHandler(stdout) #set streamhandler to stdout
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
 
 
 IS_WORKER = not bool(os.environ.get("IS_CELERY_APP", False))
@@ -25,98 +36,6 @@ if IS_WORKER:
     from .whisper import Whisper
 
     Whisper.download_avaliable_models()
-
-if not IS_WORKER and False:
-    from . import db
-    from . import models
-    from sqlmodel import Session
-
-    state = celery.events.State()
-
-    def task_sent(event):
-        # task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.SENT
-            session.commit()
-
-    def task_received(event):
-        # task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.RECEIVED
-            session.commit()
-
-    def task_started(event):
-        # task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.STARTED
-            db_task.startedAt = datetime.now()
-            session.commit()
-
-    def task_succeeded(event):
-        task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.SUCCESS
-            db_task.endedAt = datetime.now()
-            db_task.result = task.result
-            session.commit()
-
-    def task_failed(event):
-        task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.FAILURE
-            db_task.endedAt = datetime.now()
-            db_task.result = task.result
-            session.commit()
-
-    def task_rejected(event):
-        task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.REJECTED
-            db_task.endedAt = datetime.now()
-            db_task.result = task.result
-            session.commit()
-
-    def task_retried(event):
-        task = state.tasks.get(event['uuid'])
-        with Session(db.engine) as session:
-            db_task = session.get(models.Task, event['uuid'])
-            if db_task is None:
-                raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
-            db_task.status = models.TaskStatus.RETRY
-            db_task.endedAt = datetime.now()
-            db_task.result = task.result
-            session.commit()
-            
-    with celery.connection() as connection:
-        recv = celery.events.Receiver(connection, handlers={
-            'task-sent': task_sent,
-            'task-received': task_received,
-            'task-started': task_started,
-            'task-succeeded': task_succeeded,
-            'task-failed': task_failed,
-            'task-rejected': task_rejected,
-            'task-retried': task_retried,
-        })
-        recv.capture(limit=None, timeout=None, wakeup=True)
-
 
 
 
