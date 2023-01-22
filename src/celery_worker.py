@@ -52,10 +52,6 @@ if IS_WORKER:
     )
     
     w.download_avaliable_models()
-else:
-    celery.conf.task_queues = tuple(
-        Queue(name) for name in whisper_models_names
-    )
 
 @celery.task(bind=True, name="transcribe")
 def transcribe(self, model: str, filehash: int, filename: str):

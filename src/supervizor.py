@@ -243,6 +243,15 @@ def select_tasks(
         return tasks
 
 
+
+
+@app.get("/stats")
+def celery_stats():
+    stats = celery_worker.celery.control.inspect().stats()
+    logger.info(str(stats))
+    return stats
+
+
 @app.on_event("startup")
 def on_startup():
     db.create_db_and_tables()
