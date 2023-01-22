@@ -1,6 +1,9 @@
+from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from sys import stdout
+from typing import Any, Dict, List, Set
 from stable_whisper import load_model
 from stable_whisper.stabilization import tighten_timestamps
 import torch
@@ -10,6 +13,8 @@ from pathlib import Path
 import re, itertools, os
 import calendar
 import logging
+import src.utils as utils
+import src.whisper_models as whisper_models
 logger = logging.getLogger(__name__)
 
 _ru_month_starts = [
@@ -27,23 +32,37 @@ _ru_month_starts = [
     'декабр',
 ]
 
-device_name = "cuda" if torch.cuda.is_available() else "cpu"
-logger.info(f"Using device '{device_name}' for ML.")
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
+logger.info(f"Using device '{device_type}' for ML.")
 
-class Whisper:
-    AVALIABLE_MODELS = os.environ.get('WHISPER_AVALIABLE_MODELS').split(',')
-    MODELS_DIR = Path(os.environ.get('WHISPER_MODELS_DIR'))
-    loaded_models = dict()
+@dataclass
+class _LoadedModel:
+    model_ml: Any
+    model_info: whisper_models.WhisperModel
 
-    def transcribe(file: Path, model_name: str, datetime_base: datetime = None):
-        model = Whisper._get_model(model_name=model_name)
-        result = model.transcribe(str(file.resolve()))
+class Whisper(metaclass=utils.Singleton):
+    def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
+        super().__init__()
+        env_av_model_names = set(os.environ.get('WHISPER_AVALIABLE_MODELS', '').split(','))
+        avaliable_model_names = set(_MODELS.keys()).intersection(env_av_model_names)
+        avaliable_models = [whisper_models.WhisperModels[name].value for name in avaliable_model_names]
+        models_devices = utils.match_device_models(devices, avaliable_models, exclude_nomatch=True)
+        resolvable_models = set(models_devices.keys())
+
+        self.avaliable_models = resolvable_models
+        self.models_directory = Path(os.environ.get('WHISPER_MODELS_DIR', './data/models'))
+        self.models_devices = models_devices
+        self._loaded_models: OrderedDict[whisper_models.WhisperModelsNames, _LoadedModel] = OrderedDict()
+        self.limit_loaded_models = limit_loaded_models
+
+
+    def transcribe(self, file: Path, model_name: str, datetime_base: datetime = None):
+        model = self._get_model(model_name=model_name)
+        result = model.model_ml.transcribe(str(file.resolve()))
 
         if datetime_base is None:
             datetime_base = datetime.now()
-        text = Whisper._result_to_txt(result, datetime_base)
-
-        Whisper._free_model(model)
+        text = self._result_to_txt(result, datetime_base)
 
         return {
             'text': text,
@@ -52,49 +71,49 @@ class Whisper:
         }
 
 
-    def _get_model(model_name: str):
-        if model_name not in Whisper.AVALIABLE_MODELS:
-            raise Exception(f"Model '{model_name}' not avaliable! (Avaliabled models: {','.join(Whisper.AVALIABLE_MODELS)})")
+    def _get_model(self, model_name: str):
+        if model_name not in self.avaliable_models:
+            raise Exception(f"Model '{model_name}' not avaliable! (Avaliabled models: {','.join(self.avaliable_models)})")
 
-        cached_model = Whisper.loaded_models.get(model_name)
-        if cached_model is None:
-            device_name = "cuda" if torch.cuda.is_available() else "cpu"
-            device = torch.device(device_name)
-            logger.info(f"Using device '{device_name}' to load model '{model_name}'.")
-            model = load_model(model_name, device, Whisper.MODELS_DIR)
-            Whisper.loaded_models[model_name] = model
-
-            logger.info(f"Loaded! Models in memory: {list(Whisper.loaded_models.keys())}")
-            return model
-        
-        return cached_model
-
-
-    def _free_model(model_name: str):
-        if model_name not in Whisper.AVALIABLE_MODELS:
-            raise Exception(f"Model '{model_name}' not avaliable! (Avaliabled models: {','.join(Whisper.AVALIABLE_MODELS)})")
-
-        cached_model = Whisper.loaded_models.get(model_name)
+        cached_model = self._loaded_models.get(model_name)
         if cached_model is not None:
-            Whisper.loaded_models.pop(model_name)
+            return cached_model
+
+        device = self.models_devices[model_name]
+        logger.info(f"Using device '{device.name}' to load model '{model_name}'.")
+
+        self._loaded_models = OrderedDict()
+        model = load_model(model_name, torch.device(device.idx), self.models_directory)
+        self._loaded_models[model_name] = _LoadedModel(model_ml=model, model_info=m_info(model_name))
+        self._loaded_models = OrderedDict(sorted(self._loaded_models.items(), key=lambda m: m[1].model_info.mem_usage))
+
+        logger.info(f"Loaded! Models in memory: {list(self._loaded_models.keys())}")
+        return self._loaded_models[model_name]
+
+        
+
+    def _free_model(self, model_name: str):
+        if model_name not in self.avaliable_models:
+            raise Exception(f"Model '{model_name}' not avaliable! (Avaliabled models: {','.join(self.avaliable_models)})")
+
+        cached_model = self._loaded_models.get(model_name)
+        if cached_model is not None:
+            self._loaded_models.pop(model_name)
             logger.info(f"Model '{model_name}' removed from memory.")
             return True
 
         return False
 
 
-    def download_avaliable_models():
-        for av_model_name in Whisper.AVALIABLE_MODELS:
+    def download_avaliable_models(self):
+        for name in self.avaliable_models:
             logger.info("Trying to download avaliable models...")
-            _download(_MODELS[av_model_name], Whisper.MODELS_DIR, False)
+            _download(_MODELS[name], self.models_directory, False)
             logger.info("All models has been downloaded.")
 
 
-    def validate_avaliable_models():
-        for av_model_name in Whisper.AVALIABLE_MODELS:
-            if av_model_name not in list(_MODELS.keys()):
-                raise Exception(f"Bad avaliable model '{av_model_name}'! Real avaliable whisper models: {','.join(list(_MODELS.keys()))}")
-
+    def is_model_avaliable(self, model: str):
+        return model in self.avaliable_models
 
     def _filter_dates(dd):
         date_text, date_time = dd
@@ -110,7 +129,7 @@ class Whisper:
         return result
 
 
-    def _result_to_txt(res: dict, datetime_base: datetime=None):
+    def _result_to_txt(self, res: dict, datetime_base: datetime=None):
 
         segments = tighten_timestamps(res,
             end_at_last_word=False,
@@ -163,4 +182,9 @@ class Whisper:
         return delta - timedelta(microseconds=delta.microseconds)
 
 
-Whisper.validate_avaliable_models()
+
+def m_info(model: whisper_models.WhisperModels):
+    return whisper_models.WhisperModels[model].value
+
+def mem(model: whisper_models.WhisperModels):
+    return model.mem_usage

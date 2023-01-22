@@ -19,7 +19,7 @@ class WhisperModelsNames(str, Enum):
 
 @dataclass
 class WhisperModel():
-    name: str
+    name: WhisperModelsNames
     parameters: int
     mem_usage: int
     relative_speed: int

@@ -14,13 +14,14 @@ from datetime import datetime
 from celery.result import AsyncResult
 from . import db
 from . import models
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 from . import whisper_models
 import logging
 
 if os.environ.get('DEV', False):
     import debugpy
     debugpy.listen(('0.0.0.0', 7999))
+    # debugpy.wait_for_client()
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,8 @@ def add_task(
 
         celery_worker.test_transcribe.apply_async(
             args=(model, filehash, filename), 
-            task_id=str(id)
+            task_id=str(id),
+            queue=model
         )
             
         return models.TaskSimpleInfo(   
@@ -207,6 +209,17 @@ def task_abort(id: UUID4):
             id=id,
             status=task.status
         )
+
+
+@app.delete("/task")
+def clear_tasks():
+    with Session(db.engine) as session:
+        statement = delete(models.Task)
+        result = session.exec(statement)
+        session.commit()
+        return JSONResponse({'rowcount': result.rowcount})
+
+
 
 
 
@@ -304,7 +317,10 @@ async def celery_db_syncronization():
                 raise Exception(f"Task has id, but not exist in DB! ({event['uuid']})")
             db_task.status = models.TaskStatus.FAILURE
             db_task.endedAt = datetime.now()
-            db_task.result = task.result
+            if isinstance(task.result, dict):
+                db_task.result = task.result
+            else:
+                db_task.result = str(task.result)
             logger.info(f"Task '{event['uuid']}' now has status '{db_task.status}'")
             session.commit()
 

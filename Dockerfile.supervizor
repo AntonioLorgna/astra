@@ -9,10 +9,6 @@ WORKDIR /astra
 RUN chown -R $USER:$USER /astra && chmod 755 /astra
 USER $USER
 
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
 # Установка зависимостей в порядке их записи
 COPY requirements_app.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \

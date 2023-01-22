@@ -76,15 +76,16 @@ services:
       redis:
         condition: service_healthy
     
-  api:
+  supervizor:
     build: 
       context: .
-      dockerfile: ./Dockerfile.app
-    command: uvicorn src.api:app --host 0.0.0.0 --port 8000
+      dockerfile: ./Dockerfile.supervizor
+    command: uvicorn src.supervizor:app --host 0.0.0.0 --port 8000
     volumes:
       - ./data/astra:/astra/data
     ports:
       - "8000:8000"
+      - "7999:7999"
     env_file:
       - app.env
     depends_on:
@@ -97,9 +98,11 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.worker
-    command: celery -A src.celery_worker.celery worker --loglevel=info --concurrency=1
+    command: celery -A src.celery_worker.celery worker -P solo -l info
     volumes:
       - ./data/astra:/astra/data
+    ports:
+      - "7998:7998"
     env_file:
       - worker.env
     depends_on:
