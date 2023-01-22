@@ -57,20 +57,8 @@ else:
         Queue(name) for name in whisper_models_names
     )
 
-
-@celery.task(name="astra_test_task")
-def test_task(a, b, c):
-    time.sleep(a)
-    return {
-        'a': a,
-        'b': b,
-        'c': c,
-        'result': c+b
-    }
-
-
-@celery.task(bind=True, name="test_transcribe")
-def test_transcribe(self, model: str, filehash: int, filename: str):
+@celery.task(bind=True, name="transcribe")
+def transcribe(self, model: str, filehash: int, filename: str):
     # time.sleep(0)
     task_id = self.request.id
     filepath = MEDIA_DIR / str(filename)
