@@ -134,4 +134,5 @@ dmypy.json
 
 # Temporary files
 /temp
-/compose
+/data
+/_astra_api
