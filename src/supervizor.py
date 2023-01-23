@@ -17,6 +17,7 @@ from . import models
 from sqlmodel import Session, delete, select
 from . import whisper_models
 import logging
+import json
 
 if os.environ.get('DEV', False):
     import debugpy
@@ -38,7 +39,7 @@ MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
-
+app.bas
 
 @app.get("/")
 def root_redirect():
@@ -245,11 +246,10 @@ def select_tasks(
 
 
 
-@app.get("/stats")
+@app.get("/stats",response_class=JSONResponse)
 def celery_stats():
     stats = celery_worker.celery.control.inspect().stats()
-    logger.info(str(stats))
-    return stats
+    return json.loads(json.dumps(stats, default=str))
 
 
 @app.on_event("startup")
