@@ -5,7 +5,7 @@ import celery.states as states
 from celery.result import AsyncResult
 import enum
 from datetime import datetime
-from . import whisper_models
+from . import whisper_static
 
 class TaskStatus(str, enum.Enum):
     FAILURE = states.FAILURE
@@ -26,7 +26,7 @@ class Task(SQLModel, table=True):
     id: UUID4 = Field(primary_key=True, unique=True)
 
     filehash: int = Field(index=True)
-    model: whisper_models.WhisperModelsNames = Field(index=True, sa_column=Enum(whisper_models.WhisperModelsNames))
+    model: whisper_static.WhisperModelsNames = Field(index=True, sa_column=Enum(whisper_static.WhisperModelsNames))
     args: Dict = Field(default={}, sa_column=Column(JSON))
 
     status: TaskStatus = Field(default=TaskStatus.PENDING, sa_column=Enum(TaskStatus))

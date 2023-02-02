@@ -9,7 +9,7 @@ from zlib import crc32
 from datetime import datetime
 import logging
 import src.utils as utils
-from .whisper_models import WhisperModels, whisper_models_names
+from .whisper_static import WhisperModels, whisper_models_names
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO) # set logger level

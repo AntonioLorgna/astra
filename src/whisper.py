@@ -14,7 +14,7 @@ import re, itertools, os
 import calendar
 import logging
 import src.utils as utils
-import src.whisper_models as whisper_models
+import whisper_static as whisper_static
 logger = logging.getLogger(__name__)
 
 _ru_month_starts = [
@@ -38,21 +38,21 @@ logger.info(f"Using device '{device_type}' for ML.")
 @dataclass
 class _LoadedModel:
     model_ml: Any
-    model_info: whisper_models.WhisperModel
+    model_info: whisper_static.WhisperModel
 
 class Whisper(metaclass=utils.Singleton):
     def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
         super().__init__()
         env_av_model_names = set(os.environ.get('WHISPER_AVALIABLE_MODELS', '').split(','))
         avaliable_model_names = set(_MODELS.keys()).intersection(env_av_model_names)
-        avaliable_models = [whisper_models.WhisperModels[name].value for name in avaliable_model_names]
+        avaliable_models = [whisper_static.WhisperModels[name].value for name in avaliable_model_names]
         models_devices = utils.match_device_models(devices, avaliable_models, exclude_nomatch=True)
         resolvable_models = set(models_devices.keys())
 
         self.avaliable_models = resolvable_models
         self.models_directory = Path(os.environ.get('WHISPER_MODELS_DIR', './data/models'))
         self.models_devices = models_devices
-        self._loaded_models: OrderedDict[whisper_models.WhisperModelsNames, _LoadedModel] = OrderedDict()
+        self._loaded_models: OrderedDict[whisper_static.WhisperModelsNames, _LoadedModel] = OrderedDict()
         self.limit_loaded_models = limit_loaded_models
 
 
@@ -183,8 +183,8 @@ class Whisper(metaclass=utils.Singleton):
 
 
 
-def m_info(model: whisper_models.WhisperModels):
-    return whisper_models.WhisperModels[model].value
+def m_info(model: whisper_static.WhisperModels):
+    return whisper_static.WhisperModels[model].value
 
-def mem(model: whisper_models.WhisperModels):
+def mem(model: whisper_static.WhisperModels):
     return model.mem_usage

@@ -15,7 +15,7 @@ from celery.result import AsyncResult
 from . import db
 from . import models
 from sqlmodel import Session, delete, select
-from . import whisper_models
+from . import whisper_static
 import logging
 import json
 
@@ -55,7 +55,7 @@ def run_test_task(args: TestTaskArgs):
 @app.put("/task",
     status_code=status.HTTP_202_ACCEPTED)
 def add_task(
-    model: whisper_models.WhisperModelsNames, 
+    model: whisper_static.WhisperModelsNames, 
     upload_file: UploadFile = File(format=[".mp3",".ogg",".flac"])):
     
     file_ext = upload_file.filename.split('.')[-1]
@@ -81,8 +81,8 @@ def add_task(
         # Check if larger model transcribed already
         for exist_task in exist_tasks:
             if exist_task.status == models.TaskStatus.SUCCESS:
-                exist_task_model_params = whisper_models.WhisperModels[exist_task.model].value.parameters
-                need_model_params = whisper_models.WhisperModels[model].value.parameters
+                exist_task_model_params = whisper_static.WhisperModels[exist_task.model].value.parameters
+                need_model_params = whisper_static.WhisperModels[model].value.parameters
                 if need_model_params <= exist_task_model_params:
                     db_task = exist_task
                     break
@@ -227,7 +227,7 @@ def clear_tasks():
 @app.get("/task")
 def select_tasks(
     status: models.TaskStatus | None = None,
-    model: whisper_models.WhisperModelsNames | None = None,
+    model: whisper_static.WhisperModelsNames | None = None,
     filehash: int | None = None
     ):
     with Session(db.engine) as session:

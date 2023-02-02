@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
-from src.whisper_models import WhisperModel, WhisperModelsNames, WhisperModels
+from whisper_static import WhisperModel, WhisperModelsNames, WhisperModels
 
 @dataclass()
 class DeviceInfo:
