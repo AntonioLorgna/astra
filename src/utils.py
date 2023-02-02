@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
-from whisper_static import WhisperModel, WhisperModelsNames, WhisperModels
+from whisper_static import WhisperModelInfo, WhisperModelsNames, WhisperModels
 
 @dataclass()
 class DeviceInfo:
@@ -53,10 +53,10 @@ def get_devices(exclude_cpu=False):
 
     return devices
 
-def match_device_models(devices: List[DeviceInfo], models: List[WhisperModel], exclude_nomatch=True)->Dict[WhisperModelsNames, DeviceInfo]:
+def match_device_models(devices: List[DeviceInfo], models: List[WhisperModelInfo], exclude_nomatch=True)->Dict[WhisperModelsNames, DeviceInfo]:
     devices = devices.copy()
     devices.sort(key=lambda d: d.memory)
-    def match_(model: WhisperModel, devices: List[DeviceInfo]):
+    def match_(model: WhisperModelInfo, devices: List[DeviceInfo]):
         for device in devices:
             if model.mem_usage < device.memory:
                 return device

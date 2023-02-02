@@ -18,7 +18,7 @@ class WhisperModelsNames(str, Enum):
 
 
 @dataclass
-class WhisperModel():
+class WhisperModelInfo():
     name: WhisperModelsNames
     parameters: int
     mem_usage: int
@@ -26,31 +26,31 @@ class WhisperModel():
 
 
 class WhisperModels(Enum):
-    tiny = WhisperModel(
+    tiny = WhisperModelInfo(
         name='tiny',
         parameters=39,
         mem_usage=1<<30,
         relative_speed=32
     )
-    base = WhisperModel(
+    base = WhisperModelInfo(
         name='base',
         parameters=74,
         mem_usage=1<<30,
         relative_speed=16
     )
-    small = WhisperModel(
+    small = WhisperModelInfo(
         name='small',
         parameters=244,
         mem_usage=2 * 1<<30,
         relative_speed=6
     )
-    medium = WhisperModel(
+    medium = WhisperModelInfo(
         name='medium',
         parameters=769,
         mem_usage=5 * 1<<30,
         relative_speed=2
     )
-    large = WhisperModel(
+    large = WhisperModelInfo(
         name='large',
         parameters=1550,
         mem_usage=10 * 1<<30,

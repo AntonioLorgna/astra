@@ -38,7 +38,7 @@ logger.info(f"Using device '{device_type}' for ML.")
 @dataclass
 class _LoadedModel:
     model_ml: Any
-    model_info: whisper_static.WhisperModel
+    model_info: whisper_static.WhisperModelInfo
 
 class Whisper(metaclass=utils.Singleton):
     def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
