@@ -1,6 +1,8 @@
 
 from dataclasses import dataclass
 from typing import Dict, List
+import platform, os, hashlib, base64, threading, asyncio
+
 
 from whisper_static import WhisperModelInfo, WhisperModelsNames, WhisperModels
 
@@ -24,7 +26,6 @@ def get_devices(exclude_cpu=False):
     devices = []
 
     if not exclude_cpu:
-        import platform, os
         cpu = DeviceInfo(
             name=platform.processor(),
             architecture='cpu',
@@ -75,8 +76,6 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-import hashlib
-import base64
 def filehash(data: bytes)->str:
     """Генерирует хэш sha256 и кодирует в base85 и в строку utf-8.
 
@@ -87,3 +86,9 @@ def filehash(data: bytes)->str:
         str: Строка содержащая base85 символы длиной 40.
     """
     return base64.b85encode(hashlib.sha256(data).digest()).decode('utf-8')
+
+
+def fire_and_forget(coro):
+    _loop = asyncio.new_event_loop()
+    threading.Thread(target=_loop.run_forever, daemon=True).start()
+    _loop.call_soon_threadsafe(asyncio.create_task, coro)

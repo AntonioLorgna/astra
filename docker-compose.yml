@@ -80,7 +80,7 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.supervizor
-    command: uvicorn src.supervizor:app --host 0.0.0.0 --port 8000
+    command: uvicorn src.supervizor.supervizor:api.app --host 0.0.0.0 --port 8000
     volumes:
       - ./data/astra:/astra/data
     ports:
