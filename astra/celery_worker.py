@@ -2,7 +2,7 @@ from sys import stdout
 from celery import Celery
 from celery.app import defaults as celery_defaults
 from kombu import Queue
-from dotenv import load_dotenv
+from dataclasses import asdict
 import os, time, requests
 from pathlib import Path
 from datetime import datetime
@@ -77,7 +77,7 @@ def transcribe(self, model: str, filehash: str, filename: str):
         'id': str(task_id),
         'model': model,
         'filehash': filehash,
-        'text': res.get('text')
+        'result': asdict(res)
     }
 
 

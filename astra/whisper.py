@@ -40,6 +40,17 @@ class _LoadedModel:
     model_ml: Any
     model_info: whisper_static.WhisperModelInfo
 
+@dataclass(repr=True)
+class Segment:
+    start: timedelta
+    end: timedelta
+    text: str
+
+@dataclass
+class _TranscribeResult:
+    segments: List[Segment]
+    datetime_base: datetime
+
 class Whisper(metaclass=utils.Singleton):
     def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
         super().__init__()
@@ -62,13 +73,9 @@ class Whisper(metaclass=utils.Singleton):
 
         if datetime_base is None:
             datetime_base = datetime.now()
-        text = self._result_to_txt(result, datetime_base)
+        segments = self._result_to_segments(result, datetime_base)
 
-        return {
-            'text': text,
-            'datetime_base': datetime_base,
-            'result': result
-        }
+        return _TranscribeResult(segments, datetime_base)
 
 
     def _get_model(self, model_name: str):
@@ -129,7 +136,7 @@ class Whisper(metaclass=utils.Singleton):
         return result
 
 
-    def _result_to_txt(self, res: dict, datetime_base: datetime=None):
+    def _result_to_segments(self, res: dict, datetime_base: datetime=None):
 
         segments = tighten_timestamps(res,
             end_at_last_word=False,
@@ -139,8 +146,8 @@ class Whisper(metaclass=utils.Singleton):
         regex = r"\W\d{1,2}(-го)? \w{3,10}\W"
 
         def format_segment(seg):
-            start = Whisper._chop_microseconds(timedelta(seconds=seg['start']))
-            end = Whisper._chop_microseconds(timedelta(seconds=seg['end']))
+            start = seg['start']
+            end = seg['end']
 
             def replacer_date(match: 're.Match'):
                 date_str: str = match.group(0)
@@ -172,10 +179,10 @@ class Whisper(metaclass=utils.Singleton):
             text_w_dates = re.sub(regex, replacer_date, seg['text'], 0, re.UNICODE)
             
 
-            return f"[{start}-{end}] {text_w_dates}"
+            return Segment(start, end, text_w_dates)
 
-        lines = [format_segment(seg) for seg in segments]
-        return lines
+        segments = [format_segment(seg) for seg in segments]
+        return segments
     
 
     def _chop_microseconds(delta):
