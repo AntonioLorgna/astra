@@ -13,7 +13,7 @@ from pathlib import Path
 import re, itertools, os
 import calendar
 import logging
-import src.utils as utils
+import astra.utils as utils
 import whisper_static as whisper_static
 logger = logging.getLogger(__name__)
 
