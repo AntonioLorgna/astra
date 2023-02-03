@@ -1,12 +1,12 @@
 import asyncio
 from sys import stdout
+import time
 from typing import List
 from fastapi import FastAPI, File, HTTPException, status, UploadFile, BackgroundTasks
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from pydantic import UUID4
 from .schema import TestTaskArgs
 from . import celery_worker
-from zlib import crc32
 from pathlib import Path
 import os
 from uuid import uuid4
@@ -16,6 +16,7 @@ from . import db
 from . import models
 from sqlmodel import Session, delete, select
 from . import whisper_static
+from . import utils
 import logging
 import json
 
@@ -39,7 +40,6 @@ MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
-app.bas
 
 @app.get("/")
 def root_redirect():
@@ -60,7 +60,7 @@ def add_task(
     
     file_ext = upload_file.filename.split('.')[-1]
     file_bytes = upload_file.file.read()
-    filehash = crc32(file_bytes) ^ len(file_bytes)
+    filehash = utils.filehash(file_bytes)
 
     # Validate if same file already processed
     with Session(db.engine) as session:
@@ -107,7 +107,8 @@ def add_task(
 
         id = uuid4()
 
-        filename = f"{filehash}.{file_ext}"
+        
+        filename = f"{int(time.time())}.{file_ext}"
         filepath = MEDIA_DIR/ filename
         
         if not filepath.is_file():

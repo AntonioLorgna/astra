@@ -5,10 +5,9 @@ from kombu import Queue
 from dotenv import load_dotenv
 import os, time, requests
 from pathlib import Path
-from zlib import crc32
 from datetime import datetime
 import logging
-import src.utils as utils
+from . import utils
 from .whisper_static import WhisperModels, whisper_models_names
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ if IS_WORKER:
     w.download_avaliable_models()
 
 @celery.task(bind=True, name="transcribe")
-def transcribe(self, model: str, filehash: int, filename: str):
+def transcribe(self, model: str, filehash: str, filename: str):
     # time.sleep(0)
     task_id = self.request.id
     filepath = MEDIA_DIR / str(filename)
@@ -64,9 +63,9 @@ def transcribe(self, model: str, filehash: int, filename: str):
             if r.status_code == 200:
                 r.raw.decode_content = True
                 r_bytes = r.content
-                r_filehash = crc32(r_bytes) ^ len(r_bytes)
+                r_filehash = utils.filehash(r_bytes)
                 if filehash != r_filehash:
-                    raise Exception(f"Файл повреждён ({r_filehash}!={filehash})")
+                    raise Exception(f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})")
                 filepath.write_bytes(r_bytes)
                 r_bytes = None
             else:

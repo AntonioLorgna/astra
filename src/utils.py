@@ -73,3 +73,17 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
 
         return cls._instances[cls]
+
+
+import hashlib
+import base64
+def filehash(data: bytes)->str:
+    """Генерирует хэш sha256 и кодирует в base85 и в строку utf-8.
+
+    Args:
+        data (bytes): Байты для кодировки.
+
+    Returns:
+        str: Строка содержащая base85 символы длиной 40.
+    """
+    return base64.b85encode(hashlib.sha256(data).digest()).decode('utf-8')

@@ -25,7 +25,7 @@ class TaskSimpleInfo(BaseModel):
 class Task(SQLModel, table=True):
     id: UUID4 = Field(primary_key=True, unique=True)
 
-    filehash: int = Field(index=True)
+    filehash: str = Field(index=True, max_length=40)
     model: whisper_static.WhisperModelsNames = Field(index=True, sa_column=Enum(whisper_static.WhisperModelsNames))
     args: Dict = Field(default={}, sa_column=Column(JSON))
 
