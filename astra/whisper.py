@@ -13,6 +13,7 @@ from pathlib import Path
 import re, itertools, os
 import calendar
 import logging
+from astra.schema import Segment, TranscribeResult
 import astra.utils as utils
 import astra.whisper_static as whisper_static
 logger = logging.getLogger(__name__)
@@ -40,16 +41,6 @@ class _LoadedModel:
     model_ml: Any
     model_info: whisper_static.WhisperModelInfo
 
-@dataclass(repr=True)
-class Segment:
-    start: timedelta
-    end: timedelta
-    text: str
-
-@dataclass
-class _TranscribeResult:
-    segments: List[Segment]
-    datetime_base: datetime
 
 class Whisper(metaclass=utils.Singleton):
     def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
@@ -75,7 +66,7 @@ class Whisper(metaclass=utils.Singleton):
             datetime_base = datetime.now()
         segments = self._result_to_segments(result, datetime_base)
 
-        return _TranscribeResult(segments, datetime_base)
+        return TranscribeResult(segments, datetime_base)
 
 
     def _get_model(self, model_name: str):

@@ -1,3 +1,4 @@
+from astra.schema import TaskResult
 from .. import celery_worker
 from pathlib import Path
 import os

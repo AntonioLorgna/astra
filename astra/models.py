@@ -1,11 +1,11 @@
 from typing import Dict
-from sqlmodel import JSON, Column, Field, SQLModel, Enum, DateTime
-from pydantic import UUID4, BaseModel
+from sqlmodel import JSON, Column, Field, SQLModel, Enum
+from pydantic import UUID4
 import celery.states as states
-from celery.result import AsyncResult
 import enum
 from datetime import datetime
-from . import whisper_static
+from astra import whisper_static
+
 
 class TaskStatus(str, enum.Enum):
     FAILURE = states.FAILURE
@@ -18,9 +18,6 @@ class TaskStatus(str, enum.Enum):
     REJECTED = states.REJECTED
     RECEIVED = states.RECEIVED
 
-class TaskSimpleInfo(BaseModel):
-    id: UUID4
-    status: TaskStatus
 
 class Task(SQLModel, table=True):
     id: UUID4 = Field(primary_key=True, unique=True)
@@ -43,4 +40,5 @@ class Task(SQLModel, table=True):
     class Config:
         arbitrary_types_allowed = True
 
-    
+
+

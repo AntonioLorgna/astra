@@ -5,14 +5,15 @@ from typing import List
 from fastapi import FastAPI, File, HTTPException, status, UploadFile, BackgroundTasks
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from pydantic import UUID4
-from .. import celery_worker
+from astra.schema import TaskSimpleInfo
+from astra import celery_worker
 from uuid import uuid4
 from celery.result import AsyncResult
-from .. import db
-from .. import models
+from astra import db
+from astra import models
 from sqlmodel import Session, delete, select
-from .. import whisper_static
-from .. import utils
+from astra import whisper_static
+from astra import utils
 import json
 from logging import getLogger
 logger = getLogger(__name__)
@@ -72,7 +73,7 @@ def add_task(
             db_task.reruns += 1
             session.commit()
             
-            return models.TaskSimpleInfo(   
+            TaskSimpleInfo(   
                 id=db_task.id,
                 status=db_task.status
             )
@@ -107,7 +108,7 @@ def add_task(
             queue=model
         )
             
-        return models.TaskSimpleInfo(   
+        return TaskSimpleInfo(   
             id=db_task.id,
             status=db_task.status
         )
@@ -137,7 +138,7 @@ def task_status(id: UUID4):
     res = AsyncResult(id=str(id), app=celery_worker.celery)
     if res.status != task.status:
         task.status
-    return models.TaskSimpleInfo(   
+    return TaskSimpleInfo(   
         id=id,
         status=task.status
     )
@@ -171,7 +172,7 @@ def task_abort(id: UUID4):
         
 
         if task.status in [models.TaskStatus.SUCCESS, models.TaskStatus.FAILURE]:
-            return models.TaskSimpleInfo(
+            return TaskSimpleInfo(
                 id=id,
                 status=task.status
             )
@@ -180,7 +181,7 @@ def task_abort(id: UUID4):
         res.revoke(terminate=True, wait=True)
         session.delete(task)
         session.commit()
-        return models.TaskSimpleInfo(
+        return TaskSimpleInfo(
             id=id,
             status=task.status
         )

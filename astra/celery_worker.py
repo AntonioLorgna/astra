@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+
+from astra.schema import TaskResult
 load_dotenv('worker.env')
 from sys import stdout
 from celery import Celery
@@ -56,7 +58,6 @@ if IS_WORKER:
 
 @celery.task(bind=True, name="transcribe")
 def transcribe(self, model: str, filehash: str, filename: str):
-    # time.sleep(0)
     task_id = self.request.id
     filepath = MEDIA_DIR / str(filename)
 
@@ -75,11 +76,12 @@ def transcribe(self, model: str, filehash: str, filename: str):
 
     res = w.transcribe(file=filepath, model_name=model, datetime_base=None)
 
-    return {
-        'id': str(task_id),
-        'model': model,
-        'filehash': filehash,
-        'result': asdict(res)
-    }
+    # Может вызывать ошибки, если модель в глубине содержит непримитивные типы
+    return TaskResult(
+        id=str(task_id),
+        model=model,
+        filehash=filehash,
+        result=res 
+    ).dict()
 
 

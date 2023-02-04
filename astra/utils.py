@@ -92,3 +92,5 @@ def fire_and_forget(coro):
     _loop = asyncio.new_event_loop()
     threading.Thread(target=_loop.run_forever, daemon=True).start()
     _loop.call_soon_threadsafe(asyncio.create_task, coro)
+
+
