@@ -4,7 +4,7 @@ from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 
 
-from whisper_static import WhisperModelInfo, WhisperModelsNames, WhisperModels
+from astra.whisper_static import WhisperModelInfo, WhisperModelsNames, WhisperModels
 
 @dataclass()
 class DeviceInfo:

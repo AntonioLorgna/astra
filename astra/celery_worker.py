@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv('worker.env')
 from sys import stdout
 from celery import Celery
 from celery.app import defaults as celery_defaults
@@ -22,9 +24,9 @@ devices = []
 IS_WORKER = not bool(os.environ.get("IS_CELERY_APP", False))
 if IS_WORKER:
     from .whisper import Whisper
-    if os.environ.get('DEV', False):
+    if os.environ.get('DEV', False) == "Yes":
         import debugpy
-        debugpy.listen(('0.0.0.0', 7998))
+        debugpy.listen(('0.0.0.0', 7010))
     devices = utils.get_devices()
     models_devices = utils.match_device_models(devices, [m.value for m in WhisperModels])
 

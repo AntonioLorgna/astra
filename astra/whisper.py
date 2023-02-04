@@ -14,7 +14,7 @@ import re, itertools, os
 import calendar
 import logging
 import astra.utils as utils
-import whisper_static as whisper_static
+import astra.whisper_static as whisper_static
 logger = logging.getLogger(__name__)
 
 _ru_month_starts = [

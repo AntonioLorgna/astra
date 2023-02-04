@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv('app.env')
 from sys import stdout
 from pathlib import Path
 import os
@@ -7,7 +9,7 @@ from .. import utils
 
 if os.environ.get('DEV', False):
     import debugpy
-    debugpy.listen(('0.0.0.0', 7999))
+    debugpy.listen(('0.0.0.0', 7000))
     # debugpy.wait_for_client()
 
 logger = logging.getLogger(__name__)
