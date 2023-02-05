@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 import time
 from typing import List
-from fastapi import FastAPI, File, HTTPException, status, UploadFile, BackgroundTasks
+from fastapi import FastAPI, File, HTTPException, status, UploadFile, Body
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from pydantic import UUID4, HttpUrl
-from astra.schema import TaskSimpleInfo
+from astra.schema import TaskResult, TaskSimpleInfo
 from astra import celery_worker
 from uuid import uuid4
 from celery.result import AsyncResult
@@ -29,7 +29,7 @@ def root_redirect():
 @app.put("/task",
     status_code=status.HTTP_202_ACCEPTED)
 def add_task(
-    webhook: HttpUrl|None,
+    webhook: HttpUrl,
     model: whisper_static.WhisperModelsNames, 
     upload_file: UploadFile = File(format=[".mp3",".ogg",".flac"])):
     
@@ -98,13 +98,14 @@ def add_task(
                 'model': model,
                 'filehash': filehash,
                 'filename': filename
-            }
+            },
+            webhook=webhook
         )
 
         session.add(db_task)
         session.commit()
 
-        celery_worker.test_transcribe.apply_async(
+        celery_worker.transcribe.apply_async(
             args=(model, filehash, filename), 
             task_id=str(id),
             queue=model
@@ -222,3 +223,11 @@ def select_tasks(
 def celery_stats():
     stats = celery_worker.celery.control.inspect().stats()
     return json.loads(json.dumps(stats, default=str))
+
+
+@app.post("/fakewh/{hash}",response_class=JSONResponse)
+def fake_webhook(hash: str, result: TaskResult):
+    logger.info(f"Fake Webhook executed! (hash: {hash})")
+    logger.info(result.json())
+    return JSONResponse({'ok': True})
+

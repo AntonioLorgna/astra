@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from sys import stdout
 from typing import Any, Dict, List, Set
+import debugpy
 from stable_whisper import load_model
 from stable_whisper.stabilization import tighten_timestamps
 import torch
@@ -66,7 +67,7 @@ class Whisper(metaclass=utils.Singleton):
             datetime_base = datetime.now()
         segments = self._result_to_segments(result, datetime_base)
 
-        return TranscribeResult(segments, datetime_base)
+        return TranscribeResult(segments=segments, datetime_base=datetime_base)
 
 
     def _get_model(self, model_name: str):
@@ -170,7 +171,10 @@ class Whisper(metaclass=utils.Singleton):
             text_w_dates = re.sub(regex, replacer_date, seg['text'], 0, re.UNICODE)
             
 
-            return Segment(start, end, text_w_dates)
+            return Segment(start=start,
+                end=end,
+                text=text_w_dates)
+
 
         segments = [format_segment(seg) for seg in segments]
         return segments

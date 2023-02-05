@@ -4,7 +4,6 @@ import celery.states as states
 from typing import List
 from pydantic import UUID4, BaseModel, Field
 from astra import whisper_static
-from astra.models import TaskStatus
 
 
 class TaskStatus(str, enum.Enum):
@@ -19,8 +18,8 @@ class TaskStatus(str, enum.Enum):
     RECEIVED = states.RECEIVED
 
 class Segment(BaseModel):
-    start: timedelta
-    end: timedelta
+    start: float
+    end: float
     text: str
 
 class TranscribeResult(BaseModel):

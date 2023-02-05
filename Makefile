@@ -27,7 +27,7 @@ setup-app:
 	sudo pip install --upgrade pip 
 	python3 -m venv ./venv
 	source ./venv/bin/activate && (cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt) | xargs -n 1 pip install
-
+	sudo chmod -R ugo=rwx ./data
 
 .PHONY: setup
 setup: 
@@ -66,7 +66,6 @@ docker-build:
 .PHONY: docker-start
 docker-start:
 	docker compose up $(DOCKER_SERVICES) -d
-	sudo chmod ugo=rwx ./data
 
 .PHONY: docker-stop
 docker-stop:

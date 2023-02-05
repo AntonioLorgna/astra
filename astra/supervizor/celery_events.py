@@ -3,6 +3,7 @@ import os
 from uuid import uuid4
 from datetime import datetime
 from celery.result import AsyncResult
+import debugpy
 from astra import db
 from astra import models
 from astra.supervizor import webhooks
@@ -58,8 +59,8 @@ def task_succeeded(event):
             filepath.unlink(missing_ok=True)
         
         session.commit()
-        loop = asyncio.get_event_loop()
-        loop.create_task(webhooks.task_done(db_task))
+        debugpy.breakpoint()
+        webhooks.task_done(db_task)
         
 
 def task_failed(event):
