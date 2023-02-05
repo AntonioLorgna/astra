@@ -83,4 +83,6 @@ docker-status:
 
 .PHONY: db-drop
 db-drop:
-	sudo rm -frd ./data
+	sudo rm -frd ./data/postgres
+	sudo rm -frd ./data/redis
+	sudo rm -frd ./data/flower.db
