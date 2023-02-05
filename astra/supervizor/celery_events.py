@@ -1,16 +1,12 @@
-from astra.schema import TaskResult
-from .. import celery_worker
 from pathlib import Path
 import os
 from uuid import uuid4
 from datetime import datetime
 from celery.result import AsyncResult
-from .. import db
-from .. import models
+from astra import db
+from astra import models
+from astra.supervizor import webhooks
 from sqlmodel import Session, delete, select
-from .. import whisper_static
-from .. import utils
-import json
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -59,8 +55,9 @@ def task_succeeded(event):
                 raise Exception("Task argument 'filename' is None!")
             filepath = MEDIA_DIR / str(db_task.args.get('filename'))
             filepath.unlink(missing_ok=True)
-
+        
         session.commit()
+        webhooks.task_done(db_task)
 
 def task_failed(event):
     task = AsyncResult(id=event['uuid'])

@@ -1,23 +1,9 @@
 from typing import Dict
 from sqlmodel import JSON, Column, Field, SQLModel, Enum
 from pydantic import UUID4
-import celery.states as states
-import enum
 from datetime import datetime
 from astra import whisper_static
-
-
-class TaskStatus(str, enum.Enum):
-    FAILURE = states.FAILURE
-    PENDING = states.PENDING
-    RETRY = states.RETRY
-    REVOKED = states.REVOKED
-    STARTED = states.STARTED
-    SUCCESS = states.SUCCESS
-    SENT = 'SENT'
-    REJECTED = states.REJECTED
-    RECEIVED = states.RECEIVED
-
+from astra.schema import TaskStatus
 
 class Task(SQLModel, table=True):
     id: UUID4 = Field(primary_key=True, unique=True)
@@ -30,6 +16,7 @@ class Task(SQLModel, table=True):
     result: Dict = Field(default={}, sa_column=Column(JSON))
     reruns: int = Field(default=0)
 
+    webhook: str|None = Field(default=None, max_length=2048)
     user: int = Field(index=True, default=0)
     category: int = Field(index=True, default=0)
 
