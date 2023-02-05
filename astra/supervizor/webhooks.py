@@ -5,7 +5,7 @@ logger = getLogger(__name__)
 import requests
 
 
-def task_done(task: TaskModel, timeout_sec: int= 5):
+async def task_done(task: TaskModel, timeout_sec: int= 5):
     if task.webhook is None: 
         logger.warn(f"The task '{task.id}' completed successfully, but the webhook is missing.")
         return

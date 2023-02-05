@@ -7,6 +7,7 @@ from astra import db
 from astra import models
 from astra.supervizor import webhooks
 from sqlmodel import Session, delete, select
+import asyncio
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -57,7 +58,9 @@ def task_succeeded(event):
             filepath.unlink(missing_ok=True)
         
         session.commit()
-        webhooks.task_done(db_task)
+        loop = asyncio.get_event_loop()
+        loop.create_task(webhooks.task_done(db_task))
+        
 
 def task_failed(event):
     task = AsyncResult(id=event['uuid'])
