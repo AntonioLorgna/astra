@@ -4,7 +4,7 @@ from sys import stdout
 from pathlib import Path
 import os
 import logging
-from .. import utils
+from astra import utils
 
 
 if os.environ.get('DEV', False):

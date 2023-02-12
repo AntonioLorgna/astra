@@ -1,59 +1,57 @@
-import os
 from pathlib import Path
-import time
 from typing import List
-from fastapi import FastAPI, File, HTTPException, status, UploadFile, Body
+from fastapi import FastAPI, File, HTTPException, status, UploadFile
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from pydantic import UUID4, HttpUrl
-from astra.schema import TaskResult, TaskSimpleInfo
-from astra import celery_worker
 from uuid import uuid4
 from celery.result import AsyncResult
-from astra import db
-from astra import models
 from sqlmodel import Session, delete, select
+from astra.schema import TaskResult, TaskSimpleInfo, task_states
 from astra.static.whisper_models import WhisperModels
-from astra import utils, schema
-import json
+from astra import db, models, utils, celery_worker
+import json, os, time
 from logging import getLogger
+
 logger = getLogger(__name__)
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
 app = FastAPI()
+
 
 @app.get("/")
 def root_redirect():
     return RedirectResponse("/docs")
 
 
-@app.put("/task",
-    status_code=status.HTTP_202_ACCEPTED)
+@app.put("/task", status_code=status.HTTP_202_ACCEPTED)
 def add_task(
     webhook: HttpUrl,
-    model: str, 
-    upload_file: UploadFile = File(format=[".mp3",".ogg",".flac"])):
-    
-    file_ext = upload_file.filename.split('.')[-1]
+    model: str,
+    upload_file: UploadFile = File(format=[".mp3", ".ogg", ".flac"]),
+):
+    file_ext = upload_file.filename.split(".")[-1]
     file_bytes = upload_file.file.read()
     filehash = utils.hash(file_bytes)
 
     # Validate if same file already processed
     with Session(db.engine) as session:
         expression = select(models.Task).where(
-            models.Task.filehash==filehash,
-            models.Task.status.in_([
-                schema.task_states.PENDING, 
-                schema.task_states.RECEIVED, 
-                schema.task_states.STARTED,
-                schema.task_states.SUCCESS
-                ])
+            models.Task.filehash == filehash,
+            models.Task.status.in_(
+                [
+                    task_states.PENDING,
+                    task_states.RECEIVED,
+                    task_states.STARTED,
+                    task_states.SUCCESS,
+                ]
+            ),
         )
         exist_tasks: List[models.Task] = session.exec(expression).all()
 
         db_task: models.Task = None
         # Check if larger model transcribed already
         for exist_task in exist_tasks:
-            if exist_task.status == schema.task_states.SUCCESS:
+            if exist_task.status == task_states.SUCCESS:
                 if WhisperModels.is_more_accurate(model, exist_task.model, True):
                     db_task = exist_task
                     break
@@ -69,20 +67,14 @@ def add_task(
             session.add(db_task)
             db_task.reruns += 1
             session.commit()
-            
-            TaskSimpleInfo(   
-                id=db_task.id,
-                status=db_task.status,
-                webhook=webhook
-            )
-                
+
+            TaskSimpleInfo(id=db_task.id, status=db_task.status, webhook=webhook)
 
         id = uuid4()
 
-        
         filename = f"{int(time.time())}.{file_ext}"
-        filepath = MEDIA_DIR/ filename
-        
+        filepath = MEDIA_DIR / filename
+
         if not filepath.is_file():
             filepath.write_bytes(file_bytes)
 
@@ -90,27 +82,18 @@ def add_task(
             id=id,
             filehash=filehash,
             model=model,
-            args={
-                'model': model,
-                'filehash': filehash,
-                'filename': filename
-            },
-            webhook=webhook
+            args={"model": model, "filehash": filehash, "filename": filename},
+            webhook=webhook,
         )
 
         session.add(db_task)
         session.commit()
 
         celery_worker.transcribe.apply_async(
-            args=(model, filehash, filename), 
-            task_id=str(id),
-            queue=model
+            args=(model, filehash, filename), task_id=str(id), queue=model
         )
-            
-        return TaskSimpleInfo(   
-            id=db_task.id,
-            status=db_task.status
-        )
+
+        return TaskSimpleInfo(id=db_task.id, status=db_task.status)
 
 
 @app.get("/files/{task_uuid}")
@@ -118,10 +101,10 @@ def get_file(task_uuid: UUID4):
     task: models.Task
     with Session(db.engine) as session:
         task = session.get(models.Task, task_uuid)
-        if task is None or task.args.get('filename') is None:
+        if task is None or task.args.get("filename") is None:
             return HTTPException(404)
-            
-    filepath = MEDIA_DIR / task.args.get('filename')
+
+    filepath = MEDIA_DIR / task.args.get("filename")
     return FileResponse(filepath)
 
 
@@ -131,26 +114,22 @@ def task_status(id: UUID4):
     with Session(db.engine) as session:
         task = session.get(models.Task, id)
 
-        if task is None: 
+        if task is None:
             return HTTPException(404)
 
     res = AsyncResult(id=str(id), app=celery_worker.celery)
     if res.status != task.status:
         task.status
-    return TaskSimpleInfo(   
-        id=id,
-        status=task.status
-    )
+    return TaskSimpleInfo(id=id, status=task.status)
 
 
-@app.get("/task/{id}",
-    response_model=models.Task)
+@app.get("/task/{id}", response_model=models.Task)
 def task_result(id: UUID4):
     task: models.Task
     with Session(db.engine) as session:
         task = session.get(models.Task, id)
 
-        if task is None: 
+        if task is None:
             return HTTPException(404)
 
     res = AsyncResult(id=str(id), app=celery_worker.celery)
@@ -166,24 +145,17 @@ def task_abort(id: UUID4):
     with Session(db.engine) as session:
         task = session.get(models.Task, id)
 
-        if task is None: 
+        if task is None:
             return HTTPException(404)
-        
 
-        if task.status in [schema.task_states.SUCCESS, schema.task_states.FAILURE]:
-            return TaskSimpleInfo(
-                id=id,
-                status=task.status
-            )
+        if task.status in [task_states.SUCCESS, task_states.FAILURE]:
+            return TaskSimpleInfo(id=id, status=task.status)
 
         res = AsyncResult(id=str(id), app=celery_worker.celery)
         res.revoke(terminate=True, wait=True)
         session.delete(task)
         session.commit()
-        return TaskSimpleInfo(
-            id=id,
-            status=task.status
-        )
+        return TaskSimpleInfo(id=id, status=task.status)
 
 
 @app.delete("/task")
@@ -192,15 +164,13 @@ def clear_tasks():
         statement = delete(models.Task)
         result = session.exec(statement)
         session.commit()
-        return JSONResponse({'rowcount': result.rowcount})
+        return JSONResponse({"rowcount": result.rowcount})
 
 
 @app.get("/task")
 def select_tasks(
-    status: str | None = None,
-    model: str | None = None,
-    filehash: int | None = None
-    ):
+    status: str | None = None, model: str | None = None, filehash: int | None = None
+):
     with Session(db.engine) as session:
         expression = select(models.Task)
         if status is not None:
@@ -215,15 +185,14 @@ def select_tasks(
         return tasks
 
 
-@app.get("/stats",response_class=JSONResponse)
+@app.get("/stats", response_class=JSONResponse)
 def celery_stats():
     stats = celery_worker.celery.control.inspect().stats()
     return json.loads(json.dumps(stats, default=str))
 
 
-@app.post("/fakewh/{hash}",response_class=JSONResponse)
+@app.post("/fakewh/{hash}", response_class=JSONResponse)
 def fake_webhook(hash: str, result: TaskResult):
     logger.info(f"Fake Webhook executed! (hash: {hash})")
     logger.info(result.json())
-    return JSONResponse({'ok': True})
-
+    return JSONResponse({"ok": True})

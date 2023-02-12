@@ -7,22 +7,25 @@ import json as json
 import os
 
 if os.environ.get("DB_URL") is None:
-    raise Exception('DB_URL is empty!')
+    raise Exception("DB_URL is empty!")
 
 engine = _create_engine(os.environ.get("DB_URL"))
+
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
-
 _T = TypeVar("_T")
+
+
 def pydantic_column_type(pydantic_type):
     class PydanticJSONType(TypeDecorator, Generic[_T]):
         impl = JSON()
 
         def __init__(
-            self, json_encoder=json,
+            self,
+            json_encoder=json,
         ):
             self.json_encoder = json_encoder
             super(PydanticJSONType, self).__init__()
