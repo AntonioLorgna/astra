@@ -4,8 +4,6 @@ from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 
 
-from astra.whisper_static import WhisperModelInfo, WhisperModelsNames, WhisperModels
-
 @dataclass()
 class DeviceInfo:
     name: str
@@ -54,18 +52,19 @@ def get_devices(exclude_cpu=False):
 
     return devices
 
-def match_device_models(devices: List[DeviceInfo], models: List[WhisperModelInfo], exclude_nomatch=True)->Dict[WhisperModelsNames, DeviceInfo]:
+def match_device_models(devices: List[DeviceInfo], models: List[str], exclude_nomatch=True)->Dict[str, DeviceInfo]:
+    from astra.static.whisper_models import WhisperModels
     devices = devices.copy()
     devices.sort(key=lambda d: d.memory)
-    def match_(model: WhisperModelInfo, devices: List[DeviceInfo]):
+    def match_(modelname: str, devices: List[DeviceInfo]):
         for device in devices:
-            if model.mem_usage < device.memory:
+            if WhisperModels.mem_usage(modelname) < device.memory:
                 return device
         return None
     
-    return {model.name:device 
-        for model in models if 
-        (device := match_(model, devices)) is not None or not exclude_nomatch}
+    return {modelname:device 
+        for modelname in models if 
+        (device := match_(modelname, devices)) is not None or not exclude_nomatch}
 
 class Singleton(type):
     _instances = {}

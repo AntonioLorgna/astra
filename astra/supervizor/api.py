@@ -12,7 +12,7 @@ from celery.result import AsyncResult
 from astra import db
 from astra import models
 from sqlmodel import Session, delete, select
-from astra import whisper_static
+from astra.static.whisper_models import WhisperModels
 from astra import utils
 import json
 from logging import getLogger
@@ -30,7 +30,7 @@ def root_redirect():
     status_code=status.HTTP_202_ACCEPTED)
 def add_task(
     webhook: HttpUrl,
-    model: whisper_static.WhisperModelsNames, 
+    model: str, 
     upload_file: UploadFile = File(format=[".mp3",".ogg",".flac"])):
     
     file_ext = upload_file.filename.split('.')[-1]
@@ -56,9 +56,7 @@ def add_task(
         # Check if larger model transcribed already
         for exist_task in exist_tasks:
             if exist_task.status == models.TaskStatus.SUCCESS:
-                exist_task_model_params = whisper_static.WhisperModels[exist_task.model].value.parameters
-                need_model_params = whisper_static.WhisperModels[model].value.parameters
-                if need_model_params <= exist_task_model_params:
+                if WhisperModels.is_more_accurate(model, exist_task.model, True):
                     db_task = exist_task
                     break
 
@@ -202,7 +200,7 @@ def clear_tasks():
 @app.get("/task")
 def select_tasks(
     status: models.TaskStatus | None = None,
-    model: whisper_static.WhisperModelsNames | None = None,
+    model: str | None = None,
     filehash: int | None = None
     ):
     with Session(db.engine) as session:

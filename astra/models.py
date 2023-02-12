@@ -2,7 +2,6 @@ from typing import Dict, List
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel, Enum
 from pydantic import UUID4
 from datetime import datetime
-from astra import whisper_static
 from astra.schema import TaskStatus
 
 class UserServiceAccount(SQLModel, table=True):
@@ -31,7 +30,7 @@ class TaskBase(SQLModel):
 
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
-    model: whisper_static.WhisperModelsNames = Field(index=True, sa_column=Enum(whisper_static.WhisperModelsNames))
+    model: str = Field(index=True)
     result_webhook: str|None = Field(default=None, max_length=2048)
     file_webhook: str = Field(max_length=2048)
 

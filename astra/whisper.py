@@ -16,7 +16,7 @@ import calendar
 import logging
 from astra.schema import Segment, TranscribeResult
 import astra.utils as utils
-import astra.whisper_static as whisper_static
+from astra.static.whisper_models import WhisperModels
 logger = logging.getLogger(__name__)
 
 _ru_month_starts = [
@@ -37,31 +37,26 @@ _ru_month_starts = [
 device_type = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device '{device_type}' for ML.")
 
-@dataclass
-class _LoadedModel:
-    model_ml: Any
-    model_info: whisper_static.WhisperModelInfo
-
 
 class Whisper(metaclass=utils.Singleton):
     def __init__(self, devices: List[utils.DeviceInfo], limit_loaded_models:int=1) -> None:
         super().__init__()
         env_av_model_names = set(os.environ.get('WHISPER_AVALIABLE_MODELS', '').split(','))
         avaliable_model_names = set(_MODELS.keys()).intersection(env_av_model_names)
-        avaliable_models = [whisper_static.WhisperModels[name].value for name in avaliable_model_names]
+        avaliable_models = set(WhisperModels.list_models()).intersection(avaliable_model_names)
         models_devices = utils.match_device_models(devices, avaliable_models, exclude_nomatch=True)
         resolvable_models = set(models_devices.keys())
 
         self.avaliable_models = resolvable_models
         self.models_directory = Path(os.environ.get('WHISPER_MODELS_DIR', './data/models'))
         self.models_devices = models_devices
-        self._loaded_models: OrderedDict[whisper_static.WhisperModelsNames, _LoadedModel] = OrderedDict()
+        self._loaded_models: OrderedDict[str, Any] = OrderedDict()
         self.limit_loaded_models = limit_loaded_models
 
 
     def transcribe(self, file: Path, model_name: str, datetime_base: datetime = None):
         model = self._get_model(model_name=model_name)
-        result = model.model_ml.transcribe(str(file.resolve()))
+        result = model.transcribe(str(file.resolve()))
 
         if datetime_base is None:
             datetime_base = datetime.now()
@@ -82,9 +77,9 @@ class Whisper(metaclass=utils.Singleton):
         logger.info(f"Using device '{device.name}' to load model '{model_name}'.")
 
         self._loaded_models = OrderedDict()
-        model = load_model(model_name, torch.device(device.idx), self.models_directory)
-        self._loaded_models[model_name] = _LoadedModel(model_ml=model, model_info=m_info(model_name))
-        self._loaded_models = OrderedDict(sorted(self._loaded_models.items(), key=lambda m: m[1].model_info.mem_usage))
+        model_ml = load_model(model_name, torch.device(device.idx), self.models_directory)
+        self._loaded_models[model_name] = model_ml
+        self._loaded_models = OrderedDict(sorted(self._loaded_models.items(), key=lambda m: WhisperModels.mem_usage(m[1])))
 
         logger.info(f"Loaded! Models in memory: {list(self._loaded_models.keys())}")
         return self._loaded_models[model_name]
@@ -182,11 +177,3 @@ class Whisper(metaclass=utils.Singleton):
 
     def _chop_microseconds(delta):
         return delta - timedelta(microseconds=delta.microseconds)
-
-
-
-def m_info(model: whisper_static.WhisperModels):
-    return whisper_static.WhisperModels[model].value
-
-def mem(model: whisper_static.WhisperModels):
-    return model.mem_usage

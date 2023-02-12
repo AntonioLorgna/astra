@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime
 import logging
 from . import utils
-from .whisper_static import WhisperModels, whisper_models_names
+from astra.static.whisper_models import WhisperModels
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO) # set logger level
@@ -31,7 +31,7 @@ if IS_WORKER:
         import debugpy
         debugpy.listen(('0.0.0.0', 7010))
     devices = utils.get_devices()
-    models_devices = utils.match_device_models(devices, [m.value for m in WhisperModels])
+    models_devices = utils.match_device_models(devices, WhisperModels.list_models())
 
 MEDIA_DIR = Path(os.environ.get("WORKER_MEDIA_DIR", None if IS_WORKER else "./" ))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)

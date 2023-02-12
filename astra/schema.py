@@ -3,7 +3,6 @@ import enum
 import celery.states as states
 from typing import List
 from pydantic import UUID4, BaseModel, Field
-from astra import whisper_static
 
 
 class TaskStatus(str, enum.Enum):
@@ -32,6 +31,6 @@ class TaskSimpleInfo(BaseModel):
 
 class TaskResult(BaseModel):
     id: UUID4
-    model: whisper_static.WhisperModelsNames
+    model: str
     filehash: str
     result: TranscribeResult
