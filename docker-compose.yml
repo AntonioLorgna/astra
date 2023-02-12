@@ -65,7 +65,7 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.flower
-    command: celery -A astra.celery_worker.celery flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
+    command: celery -A astra.celery.app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
     env_file:
       - app.env
     ports:
@@ -80,7 +80,7 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.supervizor
-    command: uvicorn astra.supervizor.supervizor:api.app --host 0.0.0.0 --port 8000
+    command: uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000
     volumes:
       - ./data/astra:/astra/data
     ports:
@@ -98,7 +98,7 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.worker
-    command: celery -A astra.celery_worker.celery worker -P solo -l info
+    command: celery -A astra.worker:app worker -P solo -l info
     volumes:
       - ./data/astra:/astra/data
     ports:

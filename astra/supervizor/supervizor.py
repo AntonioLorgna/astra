@@ -29,6 +29,6 @@ MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 from astra import db, models
 db.create_db_and_tables()
 from astra.supervizor import api
-from astra import celery_worker
+from astra import celery
 from astra.supervizor.celery_events import celery_db_syncronization
-utils.fire_and_forget(celery_db_syncronization(celery_worker.celery))
+utils.fire_and_forget(celery_db_syncronization(celery.app))
