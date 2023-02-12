@@ -3,11 +3,10 @@ import os
 from uuid import uuid4
 from datetime import datetime
 from celery.result import AsyncResult
-import debugpy
 from astra import db
 from astra import models
 from astra.supervizor import webhooks
-from sqlmodel import Session, delete, select
+from sqlmodel import Session
 import asyncio
 from logging import getLogger
 
@@ -59,7 +58,6 @@ def task_succeeded(event):
             filepath.unlink(missing_ok=True)
         
         session.commit()
-        debugpy.breakpoint()
         webhooks.task_done(db_task)
         
 

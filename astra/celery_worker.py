@@ -67,7 +67,7 @@ def transcribe(self, model: str, filehash: str, filename: str):
             if r.status_code == 200:
                 r.raw.decode_content = True
                 r_bytes = r.content
-                r_filehash = utils.filehash(r_bytes)
+                r_filehash = utils.hash(r_bytes)
                 if filehash != r_filehash:
                     raise Exception(f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})")
                 filepath.write_bytes(r_bytes)

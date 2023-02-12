@@ -35,7 +35,7 @@ def add_task(
     
     file_ext = upload_file.filename.split('.')[-1]
     file_bytes = upload_file.file.read()
-    filehash = utils.filehash(file_bytes)
+    filehash = utils.hash(file_bytes)
 
     # Validate if same file already processed
     with Session(db.engine) as session:

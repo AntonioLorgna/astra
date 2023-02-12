@@ -76,16 +76,20 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def filehash(data: bytes)->str:
-    """Генерирует хэш sha256 и кодирует в base85 и в строку utf-8.
+def hash(data: bytes)->str:
+    """Генерирует хэш sha256 и кодирует в base64 и в строку utf-8.
 
     Args:
         data (bytes): Байты для кодировки.
 
     Returns:
-        str: Строка содержащая base85 символы длиной 40.
+        str: Строка содержащая base64 символы длиной 44.
     """
-    return base64.b85encode(hashlib.sha256(data).digest()).decode('utf-8')
+    
+    hash_d = hashlib.sha256(data).digest()
+    b64 = base64.urlsafe_b64encode(hash_d)
+    return b64.decode('utf-8')
+
 
 
 def fire_and_forget(coro):
