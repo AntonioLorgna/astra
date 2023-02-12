@@ -13,7 +13,7 @@ from astra import db
 from astra import models
 from sqlmodel import Session, delete, select
 from astra.static.whisper_models import WhisperModels
-from astra import utils
+from astra import utils, schema
 import json
 from logging import getLogger
 logger = getLogger(__name__)
@@ -42,12 +42,10 @@ def add_task(
         expression = select(models.Task).where(
             models.Task.filehash==filehash,
             models.Task.status.in_([
-                models.TaskStatus.PENDING, 
-                models.TaskStatus.SENT, 
-                models.TaskStatus.RECEIVED, 
-                models.TaskStatus.STARTED,
-                models.TaskStatus.RETRY,
-                models.TaskStatus.SUCCESS
+                schema.task_states.PENDING, 
+                schema.task_states.RECEIVED, 
+                schema.task_states.STARTED,
+                schema.task_states.SUCCESS
                 ])
         )
         exist_tasks: List[models.Task] = session.exec(expression).all()
@@ -55,7 +53,7 @@ def add_task(
         db_task: models.Task = None
         # Check if larger model transcribed already
         for exist_task in exist_tasks:
-            if exist_task.status == models.TaskStatus.SUCCESS:
+            if exist_task.status == schema.task_states.SUCCESS:
                 if WhisperModels.is_more_accurate(model, exist_task.model, True):
                     db_task = exist_task
                     break
@@ -172,7 +170,7 @@ def task_abort(id: UUID4):
             return HTTPException(404)
         
 
-        if task.status in [models.TaskStatus.SUCCESS, models.TaskStatus.FAILURE]:
+        if task.status in [schema.task_states.SUCCESS, schema.task_states.FAILURE]:
             return TaskSimpleInfo(
                 id=id,
                 status=task.status
@@ -199,7 +197,7 @@ def clear_tasks():
 
 @app.get("/task")
 def select_tasks(
-    status: models.TaskStatus | None = None,
+    status: str | None = None,
     model: str | None = None,
     filehash: int | None = None
     ):

@@ -1,20 +1,9 @@
-from datetime import datetime, timedelta
-import enum
-import celery.states as states
+from datetime import datetime
+import celery.states as _states
 from typing import List
 from pydantic import UUID4, BaseModel, Field
 
-
-class TaskStatus(str, enum.Enum):
-    FAILURE = states.FAILURE
-    PENDING = states.PENDING
-    RETRY = states.RETRY
-    REVOKED = states.REVOKED
-    STARTED = states.STARTED
-    SUCCESS = states.SUCCESS
-    SENT = 'SENT'
-    REJECTED = states.REJECTED
-    RECEIVED = states.RECEIVED
+task_states = _states
 
 class Segment(BaseModel):
     start: float
@@ -27,7 +16,7 @@ class TranscribeResult(BaseModel):
 
 class TaskSimpleInfo(BaseModel):
     id: UUID4
-    status: TaskStatus
+    status: str
 
 class TaskResult(BaseModel):
     id: UUID4

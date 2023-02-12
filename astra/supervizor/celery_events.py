@@ -5,6 +5,7 @@ from datetime import datetime
 from celery.result import AsyncResult
 from astra import db
 from astra import models
+from astra.schema import task_states
 from astra.supervizor import webhooks
 from sqlmodel import Session
 import asyncio
@@ -13,7 +14,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
-def __get_task(session: Session, uuid: str, set_status: models.TaskStatus, set_result = None):
+def __get_task(session: Session, uuid: str, set_status: str, set_result = None):
     db_task = session.get(models.Task, uuid)
     if db_task is None:
         raise Exception(f"Task has id, but not exist in DB! ({uuid})")
@@ -31,25 +32,25 @@ def __get_task(session: Session, uuid: str, set_status: models.TaskStatus, set_r
 def task_sent(event):
     # task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.SENT)
+        db_task = __get_task(session, event['uuid'], task_states.PENDING)
         session.commit()
 
 def task_received(event):
     # task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.RECEIVED)
+        db_task = __get_task(session, event['uuid'], task_states.RECEIVED)
         session.commit()
 
 def task_started(event):
     # task = state.tasks.get(event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.STARTED)
+        db_task = __get_task(session, event['uuid'], task_states.STARTED)
         session.commit()
 
 def task_succeeded(event):
     task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.SUCCESS, task.result)
+        db_task = __get_task(session, event['uuid'], task_states.SUCCESS, task.result)
 
         if os.environ.get("REMOVE_FILES_ON_SUCCESS") is not None:
             if db_task.args.get('filename') is None:
@@ -64,19 +65,19 @@ def task_succeeded(event):
 def task_failed(event):
     task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.FAILURE, task.result)
+        db_task = __get_task(session, event['uuid'], task_states.FAILURE, task.result)
         session.commit()
 
 def task_rejected(event):
     task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.REJECTED, task.result)
+        db_task = __get_task(session, event['uuid'], task_states.REJECTED, task.result)
         session.commit()
 
 def task_retried(event):
     task = AsyncResult(id=event['uuid'])
     with Session(db.engine) as session:
-        db_task = __get_task(session, event['uuid'], models.TaskStatus.RETRY, task.result)
+        db_task = __get_task(session, event['uuid'], task_states.RETRY, task.result)
         session.commit()
 
 

@@ -2,7 +2,7 @@ from typing import Dict, List
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel, Enum
 from pydantic import UUID4
 from datetime import datetime
-from astra.schema import TaskStatus
+from astra.schema import task_states
 
 class UserServiceAccount(SQLModel, table=True):
     __tablename__ = "user_service_account"
@@ -26,7 +26,7 @@ class User(UserBase, table=True):
 
 class TaskBase(SQLModel):
     id: UUID4 = Field(primary_key=True, unique=True)
-    status: TaskStatus = Field(default=TaskStatus.PENDING, sa_column=Enum(TaskStatus))
+    status: str = Field(default=task_states.PENDING)
 
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
