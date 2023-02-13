@@ -15,12 +15,18 @@ MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
 def _update_task(uuid: str, set_status: str, set_result=None):    
     with Session(db.engine) as session:
-        db_task = session.get(models.Task, uuid)
+        db_task:models.Task = session.get(models.Task, uuid)
         if db_task is None:
             raise Exception(f"Task has id, but not exist in DB! ({uuid})")
         db_task.status = set_status
         if set_result is not None:
-            db_task.result = str(set_result)
+            result = models.Result(
+                task=db_task, 
+                result=set_result, 
+                ok=(set_status==task_states.SUCCESS)
+                )
+            session.add(result)
+            db_task.result = result
             db_task.endedAt = datetime.now()
 
         webhooks.task_status(db_task)
