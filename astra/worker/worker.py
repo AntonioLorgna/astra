@@ -17,9 +17,9 @@ if os.environ.get("DEV", False) == "Yes":
 
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.INFO)  # set logger level
+logger.setLevel(logging.INFO)
 logFormatter = logging.Formatter(celery_defaults.DEFAULT_TASK_LOG_FMT)
-consoleHandler = logging.StreamHandler(stdout)  # set streamhandler to stdout
+consoleHandler = logging.StreamHandler(stdout)
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
 
@@ -30,8 +30,7 @@ whisper_instance = Whisper(devices, limit_loaded_models=1)
 whisper_instance.download_avaliable_models()
 
 
-MEDIA_DIR = Path(os.environ.get("WORKER_MEDIA_DIR"))
-FILES_ENDPOINT = os.environ.get("FILES_ENDPOINT")
+MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 import astra.celery as celery
@@ -40,11 +39,11 @@ app = celery.app
 app.conf.task_queues = tuple(Queue(name) for name in whisper_instance.avaliable_models)
 
 
-def transcribe(task_id:str, model:str, filehash:str, ):
+def transcribe(task_id:str, model:str, filehash:str, file_webhook:str):
     filepath = MEDIA_DIR / str(filehash)
 
     if not filepath.is_file():
-        with requests.get(FILES_ENDPOINT + "/" + task_id, timeout=5000) as r:
+        with requests.get(file_webhook, timeout=5000) as r:
             if r.status_code == 200:
                 r.raw.decode_content = True
                 r_bytes = r.content
@@ -62,10 +61,10 @@ def transcribe(task_id:str, model:str, filehash:str, ):
         file=filepath, model_name=model, datetime_base=None
     )
 
-    # Может вызывать ошибки, если модель в глубине содержит непримитивные типы
-    return TaskResult(
-        id=str(task_id), result=res
-    ).dict()
+    if os.environ.get('DEV') is None:
+        filepath.unlink(True)
+
+    return res.dict()
 
 
 celery.worker_transcribe_func = transcribe

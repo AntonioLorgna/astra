@@ -14,8 +14,8 @@ app.conf.worker_send_task_events = True
 worker_transcribe_func = None
 
 @app.task(bind=True, name="transcribe")
-def transcribe(self, *args, **kwargs):
+def transcribe(self, model, filehash, file_webhook):
     task_id = self.request.id
     if worker_transcribe_func is None:
         raise Exception("Celery task started not from worker!")
-    return worker_transcribe_func(task_id, *args, **kwargs)
+    return worker_transcribe_func(task_id, model, filehash, file_webhook)

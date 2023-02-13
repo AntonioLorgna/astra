@@ -13,77 +13,56 @@ logger = getLogger(__name__)
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
 
-def __get_task(session: Session, uuid: str, set_status: str, set_result=None):
-    db_task = session.get(models.Task, uuid)
-    if db_task is None:
-        raise Exception(f"Task has id, but not exist in DB! ({uuid})")
-    db_task.status = set_status
-    if set_result is not None:
-        if isinstance(set_result, dict):
-            db_task.result = set_result
-        else:
+def _update_task(uuid: str, set_status: str, set_result=None):    
+    with Session(db.engine) as session:
+        db_task = session.get(models.Task, uuid)
+        if db_task is None:
+            raise Exception(f"Task has id, but not exist in DB! ({uuid})")
+        db_task.status = set_status
+        if set_result is not None:
             db_task.result = str(set_result)
-        db_task.endedAt = datetime.now()
+            db_task.endedAt = datetime.now()
 
-    logger.info(f"Task '{uuid}' now has status '{db_task.status}'")
-    return db_task
+        webhooks.task_status(db_task)
+
+        logger.info(f"Task '{uuid}' now has status '{db_task.status}'")
+
+        session.commit()
 
 
 def task_sent(event):
     # task = AsyncResult(id=event['uuid'])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.PENDING)
-        session.commit()
+    _update_task(event["uuid"], task_states.PENDING)
 
 
 def task_received(event):
     # task = AsyncResult(id=event['uuid'])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.RECEIVED)
-        session.commit()
+    _update_task(event["uuid"], task_states.RECEIVED)
 
 
 def task_started(event):
     # task = state.tasks.get(event['uuid'])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.STARTED)
-        session.commit()
+    _update_task(event["uuid"], task_states.STARTED)
 
 
 def task_succeeded(event):
     task = AsyncResult(id=event["uuid"])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.SUCCESS, task.result)
-
-        if os.environ.get("REMOVE_FILES_ON_SUCCESS") is not None:
-            if db_task.args.get("filename") is None:
-                raise Exception("Task argument 'filename' is None!")
-            filepath = MEDIA_DIR / str(db_task.args.get("filename"))
-            filepath.unlink(missing_ok=True)
-
-        session.commit()
-        webhooks.task_done(db_task)
+    _update_task(event["uuid"], task_states.SUCCESS, task.result)
 
 
 def task_failed(event):
     task = AsyncResult(id=event["uuid"])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.FAILURE, task.result)
-        session.commit()
+    _update_task(event["uuid"], task_states.FAILURE, task.result)
 
 
 def task_rejected(event):
     task = AsyncResult(id=event["uuid"])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.REJECTED, task.result)
-        session.commit()
+    _update_task(event["uuid"], task_states.REJECTED, task.result)
 
 
 def task_retried(event):
     task = AsyncResult(id=event["uuid"])
-    with Session(db.engine) as session:
-        db_task = __get_task(session, event["uuid"], task_states.RETRY, task.result)
-        session.commit()
+    _update_task(event["uuid"], task_states.RETRY, task.result)
 
 
 async def celery_db_syncronization(celery_app):

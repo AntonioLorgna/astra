@@ -1,9 +1,16 @@
 from typing import List
 from sqlmodel import Field, Relationship, SQLModel
-from pydantic import UUID4
+from pydantic import UUID4, HttpUrl
 from datetime import datetime
 from astra.schema import task_states
 
+class UserTaskLink(SQLModel, table=True):
+    user_id: UUID4 = Field(
+        default=None, foreign_key="user.id", primary_key=True
+    )
+    task_id: UUID4 = Field(
+        default=None, foreign_key="task.id", primary_key=True
+    )
 
 class UserServiceAccount(SQLModel, table=True):
     __tablename__ = "user_service_account"
@@ -25,8 +32,10 @@ class User(UserBase, table=True):
     service_accounts: List["UserServiceAccount"] = Relationship(
         back_populates="user_service_account"
     )
-    tasks: List["Task"] = Relationship(back_populates="task")
+
+    tasks: List["Task"] = Relationship(back_populates="users", link_model=UserTaskLink)
     posts: List["Post"] = Relationship(back_populates="post")
+
 
 
 class TaskBase(SQLModel):
@@ -36,20 +45,19 @@ class TaskBase(SQLModel):
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
     model: str = Field(index=True)
-    result_webhook: str | None = Field(default=None, max_length=2048)
-    file_webhook: str = Field(max_length=2048)
+    status_webhook: HttpUrl | None = Field(default=None, max_length=2048)
+    file_webhook: HttpUrl = Field(max_length=2048)
 
     reruns: int = Field(default=0)
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
     startedAt: datetime | None = Field(default=None, nullable=True)
     endedAt: datetime | None = Field(default=None, nullable=True)
 
-    user_id: UUID4 = Field(foreign_key="user.id")
     result_id: UUID4 | None = Field(default=None, foreign_key="result.id")
 
 
 class Task(TaskBase, table=True):
-    user: "User" = Relationship(back_populates="user")
+    users: List["User"] = Relationship(back_populates="tasks", link_model=UserTaskLink)
     result: "Result" | None = Relationship(back_populates="result")
 
     # result: Dict = Field(default={}, sa_column=Column(JSON))

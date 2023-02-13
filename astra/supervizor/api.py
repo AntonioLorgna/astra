@@ -1,15 +1,14 @@
 from pathlib import Path
 from typing import List
-from fastapi import FastAPI, File, HTTPException, status, UploadFile
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import UUID4, HttpUrl
 from uuid import uuid4
-from celery.result import AsyncResult
 from sqlmodel import Session, delete, select
-from astra.schema import TaskResult, TaskSimpleInfo, task_states
+from astra.schema import TaskSimpleInfo, task_states
 from astra.static.whisper_models import WhisperModels
-from astra import db, models, utils, celery_worker
-import json, os, time
+from astra import db, models, celery
+import os
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -23,18 +22,21 @@ def root_redirect():
     return RedirectResponse("/docs")
 
 
-@app.put("/task", status_code=status.HTTP_202_ACCEPTED)
-def add_task(
-    webhook: HttpUrl,
+@app.put("/task")
+async def add_task(
+    user_id: str,
     model: str,
-    upload_file: UploadFile = File(format=[".mp3", ".ogg", ".flac"]),
+    filehash: str,
+    audio_duration_sec: float,
+    file_webhook: HttpUrl,
+    status_webhook: HttpUrl
 ):
-    file_ext = upload_file.filename.split(".")[-1]
-    file_bytes = upload_file.file.read()
-    filehash = utils.hash(file_bytes)
-
     # Validate if same file already processed
     with Session(db.engine) as session:
+        user = session.get(models.User, user_id)
+        if user is None:
+            raise HTTPException(404, "User not found!")
+
         expression = select(models.Task).where(
             models.Task.filehash == filehash,
             models.Task.status.in_(
@@ -49,150 +51,68 @@ def add_task(
         exist_tasks: List[models.Task] = session.exec(expression).all()
 
         db_task: models.Task = None
-        # Check if larger model transcribed already
+        # Check if better model or same transcribed already
         for exist_task in exist_tasks:
-            if exist_task.status == task_states.SUCCESS:
-                if WhisperModels.is_more_accurate(model, exist_task.model, True):
-                    db_task = exist_task
-                    break
-
-        # Check if same model in transcribtion process
-        if db_task is None:
-            for exist_task in exist_tasks:
-                if exist_task.model == model:
-                    db_task = exist_task
-                    break
+            if WhisperModels.is_more_accurate(model, exist_task.model, True):
+                db_task = exist_task
+                break
 
         if db_task is not None:
+            if user not in db_task.users:
+                db_task.users.append(user)
+
+            session.add(user)
             session.add(db_task)
             db_task.reruns += 1
             session.commit()
 
-            TaskSimpleInfo(id=db_task.id, status=db_task.status, webhook=webhook)
+            if db_task.result_id is not None:
+                result = db_task.result
+                return TaskSimpleInfo(
+                    id=db_task.id, 
+                    status=db_task.status, 
+                    result=result.result if result else None, 
+                    ok=result.ok if result else True
+                    )
+            
+            return TaskSimpleInfo(
+                id=db_task.id, 
+                status=db_task.status
+                )
 
         id = uuid4()
-
-        filename = f"{int(time.time())}.{file_ext}"
-        filepath = MEDIA_DIR / filename
-
-        if not filepath.is_file():
-            filepath.write_bytes(file_bytes)
 
         db_task = models.Task(
             id=id,
             filehash=filehash,
             model=model,
-            args={"model": model, "filehash": filehash, "filename": filename},
-            webhook=webhook,
+            audio_duration=audio_duration_sec,
+            status_webhook=status_webhook,
+            file_webhook=file_webhook
         )
+        db_task.users.append(user)
 
+        session.add(user)
         session.add(db_task)
         session.commit()
 
-        celery_worker.transcribe.apply_async(
-            args=(model, filehash, filename), task_id=str(id), queue=model
+        celery.transcribe.apply_async(
+            args=(model, filehash, file_webhook), task_id=str(id), queue=model
         )
 
         return TaskSimpleInfo(id=db_task.id, status=db_task.status)
 
-
-@app.get("/files/{task_uuid}")
-def get_file(task_uuid: UUID4):
-    task: models.Task
-    with Session(db.engine) as session:
-        task = session.get(models.Task, task_uuid)
-        if task is None or task.args.get("filename") is None:
-            return HTTPException(404)
-
-    filepath = MEDIA_DIR / task.args.get("filename")
-    return FileResponse(filepath)
-
-
-@app.get("/task/status/{id}")
-def task_status(id: UUID4):
-    task: models.Task
+@app.get("/task/{id}")
+def get_task(id: UUID4):
     with Session(db.engine) as session:
         task = session.get(models.Task, id)
 
         if task is None:
-            return HTTPException(404)
-
-    res = AsyncResult(id=str(id), app=celery_worker.celery)
-    if res.status != task.status:
-        task.status
-    return TaskSimpleInfo(id=id, status=task.status)
-
-
-@app.get("/task/{id}", response_model=models.Task)
-def task_result(id: UUID4):
-    task: models.Task
-    with Session(db.engine) as session:
-        task = session.get(models.Task, id)
-
-        if task is None:
-            return HTTPException(404)
-
-    res = AsyncResult(id=str(id), app=celery_worker.celery)
-    if res.status != task.status:
-        task.status
-
-    return task
-
-
-@app.delete("/task/{id}")
-def task_abort(id: UUID4):
-    task: models.Task
-    with Session(db.engine) as session:
-        task = session.get(models.Task, id)
-
-        if task is None:
-            return HTTPException(404)
-
-        if task.status in [task_states.SUCCESS, task_states.FAILURE]:
-            return TaskSimpleInfo(id=id, status=task.status)
-
-        res = AsyncResult(id=str(id), app=celery_worker.celery)
-        res.revoke(terminate=True, wait=True)
-        session.delete(task)
-        session.commit()
-        return TaskSimpleInfo(id=id, status=task.status)
-
-
-@app.delete("/task")
-def clear_tasks():
-    with Session(db.engine) as session:
-        statement = delete(models.Task)
-        result = session.exec(statement)
-        session.commit()
-        return JSONResponse({"rowcount": result.rowcount})
-
-
-@app.get("/task")
-def select_tasks(
-    status: str | None = None, model: str | None = None, filehash: int | None = None
-):
-    with Session(db.engine) as session:
-        expression = select(models.Task)
-        if status is not None:
-            expression = expression.where(models.Task.status == status)
-        if model is not None:
-            expression = expression.where(models.Task.model == model)
-        if filehash is not None:
-            expression = expression.where(models.Task.filehash == filehash)
-
-        tasks: List[models.Task] = session.exec(expression).all()
-
-        return tasks
-
-
-@app.get("/stats", response_class=JSONResponse)
-def celery_stats():
-    stats = celery_worker.celery.control.inspect().stats()
-    return json.loads(json.dumps(stats, default=str))
-
-
-@app.post("/fakewh/{hash}", response_class=JSONResponse)
-def fake_webhook(hash: str, result: TaskResult):
-    logger.info(f"Fake Webhook executed! (hash: {hash})")
-    logger.info(result.json())
-    return JSONResponse({"ok": True})
+            return HTTPException(404, "Task not found!")
+        
+        return TaskSimpleInfo(
+            id=task.id, 
+            status=task.status,
+            result=task.result.result if task.result_id else None,
+            ok=task.result.ok if task.result_id else False
+            )
