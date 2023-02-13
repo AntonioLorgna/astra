@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from typing import List
 from fastapi import FastAPI, HTTPException
@@ -10,15 +11,17 @@ from astra.static.whisper_models import WhisperModels
 from astra import db, models, celery
 import os
 from logging import getLogger
+from astra.supervizor.celery_events import CeleryTaskSync
+from astra.celery import app as celery_app
 
 logger = getLogger(__name__)
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
 app = FastAPI()
-
+task_sync = CeleryTaskSync(celery_app)
 
 @app.get("/")
-def root_redirect():
+async def root_redirect():
     return RedirectResponse("/docs")
 
 
@@ -61,9 +64,9 @@ async def add_task(
             if user not in db_task.users:
                 db_task.users.append(user)
 
+            db_task.reruns += 1
             session.add(user)
             session.add(db_task)
-            db_task.reruns += 1
             session.commit()
 
             if db_task.result_id is not None:
@@ -103,7 +106,7 @@ async def add_task(
         return TaskSimpleInfo(id=db_task.id, status=db_task.status)
 
 @app.get("/task/{id}")
-def get_task(id: UUID4):
+async def get_task(id: UUID4):
     with Session(db.engine) as session:
         task = session.get(models.Task, id)
 
@@ -116,3 +119,7 @@ def get_task(id: UUID4):
             result=task.result.result if task.result_id else None,
             ok=task.result.ok if task.result_id else False
             )
+
+@app.on_event('startup')
+async def startup():
+    asyncio.create_task(task_sync.capture())

@@ -99,6 +99,9 @@ def hash(data: bytes) -> str:
 
 
 def fire_and_forget(coro):
-    _loop = asyncio.new_event_loop()
-    threading.Thread(target=_loop.run_forever, daemon=True).start()
-    _loop.call_soon_threadsafe(asyncio.create_task, coro)
+    from concurrent.futures import ThreadPoolExecutor
+    loop = asyncio.new_event_loop()
+    executor = ThreadPoolExecutor(max_workers=2)
+    loop.run_in_executor(executor)
+    threading.Thread(target=loop.run_forever, daemon=True).start()
+    loop.call_soon_threadsafe(asyncio.create_task, coro)

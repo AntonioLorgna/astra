@@ -31,5 +31,3 @@ db.create_db_and_tables()
 from astra.supervizor import api
 app = api.app
 from astra import celery
-from astra.supervizor.celery_events import celery_db_syncronization
-utils.fire_and_forget(celery_db_syncronization(celery.app))
