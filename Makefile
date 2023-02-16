@@ -24,9 +24,10 @@ clean:
 
 .PHONY: setup-app
 setup-app: 
-	sudo pip install --upgrade pip 
 	python3 -m venv ./venv
-	source ./venv/bin/activate && (cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt) | xargs -n 1 pip install
+	source ./venv/bin/activate && \
+	pip install --upgrade pip  && \
+	(cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt) | xargs -n 1 pip install
 	sudo chmod -R ugo=rwx ./data
 
 .PHONY: setup
@@ -37,25 +38,29 @@ setup:
 
 .PHONY: start-app-supervizor
 start-app-supervizor: 
-	source ./venv/bin/activate && uvicorn astra.supervizor.supervizor:api.app --host 0.0.0.0 --port 8000
+	source ./venv/bin/activate && DEV_PORT=7010 uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000 --workers 1
+
+.PHONY: start-app-sync
+start-app-sync: 
+	source ./venv/bin/activate && DEV_PORT=7020 python3 -m astra.sync 
 	
 .PHONY: start-app-worker
 start-app-worker: 
-	source ./venv/bin/activate && celery -A astra.celery_worker.celery worker -P solo -l info 
+	source ./venv/bin/activate && DEV_PORT=7030 celery -A astra.worker:app worker -P solo -l info 
 
 .PHONY: start-app-flower
 start-app-flower: 
-	source ./venv/bin/activate && DEV=No celery -A astra.celery_worker.celery flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
+	source ./venv/bin/activate && DEV=Yes celery -A astra.flower:app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
 
 .PHONY: start-app
-start-app: start-app-worker start-app-supervizor start-app-flower
+start-app: start-app-worker start-app-supervizor start-app-sync start-app-flower 
 
 
 
 .PHONY: start
 start: 
 	make docker-start
-	make -j 3 start-app
+	make -j 4 start-app
 
 
 

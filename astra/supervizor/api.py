@@ -5,20 +5,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import UUID4, HttpUrl
 from uuid import uuid4
-from sqlmodel import Session, delete, select
+from sqlmodel import Session, select
 from astra.schema import TaskSimpleInfo, task_states
 from astra.static.whisper_models import WhisperModels
 from astra import db, models, celery
 import os
 from logging import getLogger
-from astra.supervizor.celery_events import CeleryTaskSync
 from astra.celery import app as celery_app
 
 logger = getLogger(__name__)
-MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
-
 app = FastAPI()
-task_sync = CeleryTaskSync(celery_app)
 
 @app.get("/")
 async def root_redirect():
@@ -122,4 +118,4 @@ async def get_task(id: UUID4):
 
 @app.on_event('startup')
 async def startup():
-    asyncio.create_task(task_sync.capture())
+    pass

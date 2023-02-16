@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv('app.env')
 from sys import stdout
-from pathlib import Path
 import os
 import logging
+from astra.sync.celery_events import CeleryTaskSync
+from astra.celery import app as celery_app
 
-os.environ["SUPERVIZOR"] = "Yes"
+os.environ["SYNC"] = "Yes"
 
 
 logger = logging.getLogger(__name__)
@@ -22,13 +23,8 @@ logger.addHandler(consoleHandler)
 if os.environ.get("DEV_PORT") is not None:
     port = int(os.environ.get("DEV_PORT"))
     import debugpy
-    # logger.warn("deb")
     debugpy.listen(('0.0.0.0', port))
     # debugpy.wait_for_client()
 
-
-from astra import db, models
-db.create_db_and_tables()
-from astra.supervizor import api
-app = api.app
-from astra import celery
+app = CeleryTaskSync(celery_app)
+app.capture()

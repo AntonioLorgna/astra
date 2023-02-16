@@ -3,17 +3,20 @@ import os, requests, logging
 from celery.app import defaults as celery_defaults
 from sys import stdout
 from astra import utils
-from astra.schema import TaskResult
 from astra.static.whisper_models import WhisperModels
 from astra.worker.whisper import Whisper
 from kombu import Queue
 from pathlib import Path
 
 load_dotenv("worker.env")
-if os.environ.get("DEV", False) == "Yes":
+os.environ["WORKER"] = "Yes"
+
+
+if os.environ.get("DEV_PORT") is not None:
+    port = int(os.environ.get("DEV_PORT"))
     import debugpy
 
-    debugpy.listen(("0.0.0.0", 7010))
+    debugpy.listen(("0.0.0.0", port))
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +42,7 @@ app = celery.app
 app.conf.task_queues = tuple(Queue(name) for name in whisper_instance.avaliable_models)
 
 
-def transcribe(task_id:str, model:str, filehash:str, file_webhook:str):
+def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
     filepath = MEDIA_DIR / str(filehash)
 
     if not filepath.is_file():
@@ -61,7 +64,7 @@ def transcribe(task_id:str, model:str, filehash:str, file_webhook:str):
         file=filepath, model_name=model, datetime_base=None
     )
 
-    if os.environ.get('DEV') is None:
+    if os.environ.get("DEV") is None:
         filepath.unlink(True)
 
     return res.dict()

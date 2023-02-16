@@ -38,6 +38,15 @@ class User(UserBase, table=True):
 
 
 
+class Result(SQLModel, table=True):
+    id: UUID4 = Field(primary_key=True, unique=True)
+
+    task_id: UUID4 = Field(foreign_key="task.id")
+    task: "Task" = Relationship(back_populates="task")
+
+    result: str = Field(nullable=False)
+    ok: bool = Field()
+
 class TaskBase(SQLModel):
     id: UUID4 = Field(primary_key=True, unique=True)
     status: str = Field(default=task_states.PENDING)
@@ -45,8 +54,8 @@ class TaskBase(SQLModel):
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
     model: str = Field(index=True)
-    status_webhook: HttpUrl | None = Field(default=None, max_length=2048)
-    file_webhook: HttpUrl = Field(max_length=2048)
+    status_webhook: HttpUrl | None = Field(default=None)
+    file_webhook: HttpUrl = Field()
 
     reruns: int = Field(default=0)
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
@@ -58,21 +67,12 @@ class TaskBase(SQLModel):
 
 class Task(TaskBase, table=True):
     users: List["User"] = Relationship(back_populates="tasks", link_model=UserTaskLink)
-    result: "Result" | None = Relationship(back_populates="result")
+    result: Result | None = Relationship(back_populates="result")
 
     # result: Dict = Field(default={}, sa_column=Column(JSON))
     # class Config:
     #     arbitrary_types_allowed = True
 
-
-class Result(SQLModel, table=True):
-    id: UUID4 = Field(primary_key=True, unique=True)
-
-    task_id: UUID4 = Field(foreign_key="task.id")
-    task: "Task" = Relationship(back_populates="task")
-
-    result: str = Field(nullable=False)
-    ok: bool = Field()
 
 
 class PostBase(SQLModel):

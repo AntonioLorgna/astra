@@ -105,3 +105,9 @@ def fire_and_forget(coro):
     loop.run_in_executor(executor)
     threading.Thread(target=loop.run_forever, daemon=True).start()
     loop.call_soon_threadsafe(asyncio.create_task, coro)
+
+
+def show_execute_path():
+    from pathlib import Path
+    p = Path('./')
+    return str(p.resolve(True))

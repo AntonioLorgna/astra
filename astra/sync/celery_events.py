@@ -1,5 +1,3 @@
-from pathlib import Path
-import os
 from datetime import datetime
 from celery import Celery
 from celery.events.receiver import EventReceiver
@@ -7,13 +5,12 @@ from celery.result import AsyncResult
 from astra import db
 from astra import models
 from astra.schema import task_states
-from astra.supervizor import webhooks
+from astra.sync import webhooks
 from sqlmodel import Session
 from logging import getLogger
 import asyncio, inspect
 
 logger = getLogger(__name__)
-MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 
 class AsyncReceiver(EventReceiver):
     def process(self, type, event):
@@ -53,17 +50,21 @@ def _update_task(uuid: str, set_status: str, set_result=None):
 
 def task_event_process(event):
     r = AsyncResult(id=event["uuid"])
+
+    loop = asyncio.get_event_loop()
+    coro = None
     if r.ready():
-        _update_task(event["uuid"], r.state, r.result)
+        coro = _update_task(event["uuid"], r.state, r.result)
     else:
-        _update_task(event["uuid"], r.state)
+        coro = _update_task(event["uuid"], r.state)
+    loop.create_task(coro)
 
 
 class CeleryTaskSync:
     def __init__(self, celery_app: Celery) -> None:
         self.app = celery_app
 
-    async def capture(self):
+    def capture(self):
         logger.info(f"Task events listening...")
         # state = celery_app.events.State()
 
@@ -82,3 +83,4 @@ class CeleryTaskSync:
             )
 
             recv.capture(limit=None, timeout=None, wakeup=True)
+
