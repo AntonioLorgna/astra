@@ -17,6 +17,6 @@ consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
 
 
-from astra import celery
+from astra.core import celery
 
 app = celery.app

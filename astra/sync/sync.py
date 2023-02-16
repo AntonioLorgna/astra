@@ -4,7 +4,7 @@ from sys import stdout
 import os
 import logging
 from astra.sync.celery_events import CeleryTaskSync
-from astra.celery import app as celery_app
+from astra.core.celery import app as celery_app
 
 os.environ["SYNC"] = "Yes"
 

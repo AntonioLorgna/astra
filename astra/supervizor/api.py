@@ -6,12 +6,13 @@ from fastapi.responses import RedirectResponse
 from pydantic import UUID4, HttpUrl
 from uuid import uuid4
 from sqlmodel import Session, select
+from astra.core import celery
 from astra.schema import TaskSimpleInfo, task_states
 from astra.static.whisper_models import WhisperModels
-from astra import db, models, celery
+from astra import db, models
 import os
 from logging import getLogger
-from astra.celery import app as celery_app
+from astra.core.celery import app as celery_app
 
 logger = getLogger(__name__)
 app = FastAPI()

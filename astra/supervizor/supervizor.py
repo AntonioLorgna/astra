@@ -31,4 +31,4 @@ from astra import db, models
 db.create_db_and_tables()
 from astra.supervizor import api
 app = api.app
-from astra import celery
+from astra.core import celery

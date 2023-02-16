@@ -36,7 +36,7 @@ whisper_instance.download_avaliable_models()
 MEDIA_DIR = Path(os.environ.get("MEDIA_DIR"))
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
-import astra.celery as celery
+import astra.core.celery as celery
 
 app = celery.app
 app.conf.task_queues = tuple(Queue(name) for name in whisper_instance.avaliable_models)
