@@ -33,6 +33,7 @@ setup-app:
 	source ./venv/bin/activate && \
 	pip install --upgrade pip  && \
 	(cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt && cat requirements_api.txt) | xargs -n 1 pip install
+	make setup-frontend
 	sudo chmod -R ugo=rwx ./data
 
 .PHONY: setup

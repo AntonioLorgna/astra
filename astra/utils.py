@@ -133,9 +133,7 @@ def get_ngrok_hostname():
 
     response = requests.get("http://localhost:4040/api/tunnels", timeout=3)
     if not response.ok: return None
-
-    logger.warn(response.json())
-    
+   
     try:
         return response.json()['tunnels'][0]['public_url']
     except KeyError:
