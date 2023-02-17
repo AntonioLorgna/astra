@@ -128,13 +128,9 @@ def show_execute_path():
     p = Path('./')
     return str(p.resolve(True))
 
-def get_ngrok_hostname():
-    import requests
 
-    response = requests.get("http://localhost:4040/api/tunnels", timeout=3)
-    if not response.ok: return None
-   
-    try:
-        return response.json()['tunnels'][0]['public_url']
-    except KeyError:
-        return None
+def devport_init():
+    if os.environ.get("DEV_PORT") is not None:
+        port = int(os.environ.get("DEV_PORT"))
+        import debugpy
+        debugpy.listen(("0.0.0.0", port))
