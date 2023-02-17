@@ -3,9 +3,6 @@ python-multipart~=0.0.5
 psycopg2-binary~=2.9.5
 sqlmodel~=0.0.8
 uvicorn[standart]~=0.18.3
-redis~=4.4.2
-celery~=5.2.7
-requests~=2.28.2
 python-dotenv~=0.21.0
 debugpy
-python-jose[cryptography]
+aiogram
