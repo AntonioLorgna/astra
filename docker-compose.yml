@@ -93,6 +93,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/docs"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
   celery_worker:
     container_name: celery_worker
     build: 
@@ -115,3 +120,20 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+  api:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.api
+    command: uvicorn astra.api:app --host 0.0.0.0 --port 8080
+    volumes:
+      - ./data/astra:/astra/data
+    ports:
+      - "8080:8080"
+      - "7000:7000"
+    env_file:
+      - api.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      supervizor:
+        condition: service_healthy

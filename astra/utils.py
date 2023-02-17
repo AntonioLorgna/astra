@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
+from logging import getLogger
 
+logger = getLogger(__name__)
 
 @dataclass()
 class DeviceInfo:
@@ -83,6 +85,20 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+def logging_setup(logger=None, level=20, formatter="%(levelname)s: %(message)s"):
+    import logging
+    from sys import stdout
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    logger.setLevel(level)
+    logFormatter = logging.Formatter(formatter)
+
+    consoleHandler = logging.StreamHandler(stdout)
+    consoleHandler.setFormatter(logFormatter)
+    logger.addHandler(consoleHandler)
+
 def hash(data: bytes) -> str:
     """Генерирует хэш sha256 и кодирует в base64 и в строку utf-8.
 
@@ -111,3 +127,16 @@ def show_execute_path():
     from pathlib import Path
     p = Path('./')
     return str(p.resolve(True))
+
+def get_ngrok_hostname():
+    import requests
+
+    response = requests.get("http://localhost:4040/api/tunnels", timeout=3)
+    if not response.ok: return None
+
+    logger.warn(response.json())
+    
+    try:
+        return response.json()['tunnels'][0]['public_url']
+    except KeyError:
+        return None

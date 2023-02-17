@@ -24,10 +24,11 @@ clean:
 
 .PHONY: setup-app
 setup-app: 
+	sudo echo ""
 	python3 -m venv ./venv
 	source ./venv/bin/activate && \
 	pip install --upgrade pip  && \
-	(cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt) | xargs -n 1 pip install
+	(cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt && cat requirements_api.txt) | xargs -n 1 pip install
 	sudo chmod -R ugo=rwx ./data
 
 .PHONY: setup
@@ -48,19 +49,28 @@ start-app-sync:
 start-app-worker: 
 	source ./venv/bin/activate && DEV_PORT=7030 celery -A astra.worker:app worker -P solo -l info 
 
+.PHONY: start-app-ngrok
+start-app-ngrok: 
+	ngrok http 8080 > /dev/null &
+
+.PHONY: start-app-api
+start-app-api: 
+	source ./venv/bin/activate && DEV_PORT=7040 uvicorn astra.api:app --host 0.0.0.0 --port 8080 --workers 1
+
 .PHONY: start-app-flower
 start-app-flower: 
 	source ./venv/bin/activate && DEV=Yes celery -A astra.flower:app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
 
 .PHONY: start-app
-start-app: start-app-worker start-app-supervizor start-app-sync start-app-flower 
+start-app: start-app-worker start-app-supervizor start-app-sync start-app-flower start-app-api
 
 
 
 .PHONY: start
 start: 
+	make start-app-ngrok
 	make docker-start
-	make -j 4 start-app
+	make -j 5 start-app
 
 
 
