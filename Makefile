@@ -21,6 +21,10 @@ clean:
 	rm -rf build
 
 
+.PHONY: setup-frontend
+setup-frontend: 
+	cd frontend && \
+	npm install
 
 .PHONY: setup-app
 setup-app: 
@@ -63,6 +67,11 @@ start-app-flower:
 
 .PHONY: start-app
 start-app: start-app-worker start-app-supervizor start-app-sync start-app-flower start-app-api
+
+.PHONY: start-frontend
+start-frontend: 
+	cd frontend && \
+	npm run dev
 
 
 
