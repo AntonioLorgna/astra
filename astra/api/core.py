@@ -1,9 +1,9 @@
-from datetime import timedelta
-import requests, os
+import requests
 from astra import models
 from astra.db import engine
 from sqlmodel import Session, delete, select
 from logging import getLogger
+from astra.api import config
 logger = getLogger(__name__)
 
 from astra.schema import TaskSimpleInfo
@@ -52,10 +52,8 @@ def add_user_tg(tg_id: str, role: int = 0, limit_seconds: int = 0):
         return user
 
 def add_task(user: models.User, task_init: models.TaskInit):
-    SUPERVIZOR_ADRESS = os.environ.get('SUPERVIZOR_ADRESS')
-
     response = requests.put(
-        SUPERVIZOR_ADRESS + '/task',
+        config.SUPERVIZOR_ADDRESS + '/task',
         json={
             'user_id':user.id,
             **task_init.dict()

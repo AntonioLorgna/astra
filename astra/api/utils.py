@@ -1,9 +1,8 @@
-import os
 from pathlib import Path
 from aiogram.types.mixins import Downloadable
 
 from astra.utils import HashIO
-
+from astra.api import config
 
 async def download_tg_file(
     downloadable: Downloadable, temp_filename: str, timeout=35, chunk_size=65536
@@ -35,8 +34,6 @@ async def download_tg_file(
 
 
 def build_status_wh():
-    SELF_ADDRESS = os.environ.get('SELF_ADDRESS')
-    return f"{SELF_ADDRESS}/status"
+    return f"{config.SELF_ADDRESS}/status"
 def build_file_wh(task_id: str):
-    SELF_ADDRESS = os.environ.get('SELF_ADDRESS')
-    return f"{SELF_ADDRESS}/file/{task_id}"
+    return f"{config.SELF_ADDRESS}/file/{task_id}"
