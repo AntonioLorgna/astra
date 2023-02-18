@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from aiogram.types.mixins import Downloadable
 
@@ -31,3 +32,11 @@ async def download_tg_file(
                 hash.update(chunk)
 
     return (temp_filepath, str(hash))
+
+
+def build_status_wh():
+    SELF_ADDRESS = os.environ.get('SELF_ADDRESS')
+    return f"{SELF_ADDRESS}/status"
+def build_file_wh(task_id: str):
+    SELF_ADDRESS = os.environ.get('SELF_ADDRESS')
+    return f"{SELF_ADDRESS}/file/{task_id}"

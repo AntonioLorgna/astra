@@ -19,9 +19,9 @@ utils.logging_setup(logger)
 
 utils.devport_init()
 
-SUPERVIZOR_ADRESS = os.environ.get('SUPERVIZOR_ADRESS')
-if SUPERVIZOR_ADRESS is None:
-    raise Exception("SUPERVIZOR_ADRESS is empty!")
+SUPERVIZOR_ADDRESS = os.environ.get('SUPERVIZOR_ADDRESS')
+if SUPERVIZOR_ADDRESS is None:
+    raise Exception("SUPERVIZOR_ADDRESS is empty!")
 
 if os.environ.get("MEDIA_DIR") is None:
     raise Exception("MEDIA_DIR is empty!")
@@ -52,8 +52,8 @@ async def on_shutdown():
 @app.post(get_wh_path())(process_wh_update)
 
 
-@app.post('/status/{task_id}')
-async def task_status(task_id: str, task_info: schema.TaskSimpleInfo):
+@app.post('/status')
+async def task_status(task_info: schema.TaskSimpleInfo):
     pass
 
 @app.get('/file/{task_id}')
