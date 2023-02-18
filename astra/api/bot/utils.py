@@ -37,3 +37,4 @@ def get_ngrok_hostname():
         return response.json()['tunnels'][0]['public_url']
     except KeyError or ConnectionError:
         return None
+    

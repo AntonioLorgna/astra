@@ -27,10 +27,10 @@ def add_user(role: int = 0, limit_seconds: int = 0):
 
 def get_user_tg(tg_id: str):
     with Session(engine) as session:
-        statement = select(models.User, models.UserServiceAccount) \
-            .where(models.User.id == models.UserServiceAccount.user_id,
-                   models.UserServiceAccount.service_id == tg_id,
-                   models.UserServiceAccount.service_name == 'telegram')
+        statement = select(models.User, models.ServiceAccount) \
+            .where(models.User.id == models.ServiceAccount.user_id,
+                   models.ServiceAccount.service_id == tg_id,
+                   models.ServiceAccount.service_name == 'telegram')
         t = session.exec(statement).first()
         if t is None: return None
         return t[0]
@@ -41,7 +41,7 @@ def add_user_tg(tg_id: str, role: int = 0, limit_seconds: int = 0):
             role=role, 
             limit_seconds=limit_seconds)
         
-        account = models.UserServiceAccount(
+        account = models.ServiceAccount(
             service_id=tg_id,
             service_name='telegram',
             user=user
@@ -69,3 +69,4 @@ def get_task(id: str):
         statement = select(models.Task) \
             .where(models.Task.id == id)
         return session.exec(statement).first()
+

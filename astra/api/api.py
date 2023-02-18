@@ -43,8 +43,10 @@ async def on_shutdown():
 
 
 @app.post('/status')
-async def task_status(task_info: schema.TaskSimpleInfo):
-    pass
+async def process_task_status(task_info: schema.TaskSimpleInfo):
+    bot = Bot.get_current()
+
+    bot.send_message()
 
 @app.get('/file')
 async def get_file(task_id: str):
