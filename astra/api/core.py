@@ -69,4 +69,3 @@ def get_task(id: str):
         statement = select(models.Task) \
             .where(models.Task.id == id)
         return session.exec(statement).first()
-

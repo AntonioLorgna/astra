@@ -3,6 +3,8 @@ from io import BytesIO
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
+from astra import schema
+import json
 
 logger = getLogger(__name__)
 
@@ -147,3 +149,6 @@ class HashIO:
 
     def __repr__(self) -> str:
         return str(self)
+
+def result_stringify(result: schema.TranscribeResult, spliter: str="\n"):
+    return spliter.join([seg.text for seg in result.segments])
