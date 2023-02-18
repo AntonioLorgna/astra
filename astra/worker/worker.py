@@ -46,26 +46,27 @@ def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
     filepath = MEDIA_DIR / str(filehash)
 
     if not filepath.is_file():
-        with requests.get(file_webhook, timeout=5000) as r:
-            if r.status_code == 200:
-                r.raw.decode_content = True
-                
-                hash = utils.HashIO()
-                with open(filepath, 'wb') as f:
-                    for chunk in r.iter_content(65536, False):
-                        hash.update(chunk)
-                        f.write(chunk)
-                    r_filehash = str(hash)
+        r = requests.get(file_webhook, timeout=5, json={'task_id':task_id})
+        if not r.ok:
+            raise Exception("Не удаётся скачать файл")
+        
+        r.raw.decode_content = True
+        
+        hash = utils.HashIO()
+        with open(filepath, 'wb') as f:
+            for chunk in r.iter_content(65536, False):
+                hash.update(chunk)
+                f.write(chunk)
+            r_filehash = str(hash)
 
-                if filehash != r_filehash:
-                    filepath.unlink(True)
-                    raise Exception(
-                        f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})"
-                    )
-                filepath.write_bytes(r_bytes)
-                r_bytes = None
-            else:
-                raise Exception("Не удаётся скачать файл")
+        if filehash != r_filehash:
+            filepath.unlink(True)
+            raise Exception(
+                f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})"
+            )
+        filepath.write_bytes(r_bytes)
+        r_bytes = None
+                
 
     res = whisper_instance.transcribe(
         file=filepath, model_name=model, datetime_base=None

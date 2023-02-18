@@ -35,5 +35,5 @@ async def download_tg_file(
 
 def build_status_wh():
     return f"{config.SELF_ADDRESS}/status"
-def build_file_wh(task_id: str):
-    return f"{config.SELF_ADDRESS}/file/{task_id}"
+def build_file_wh():
+    return f"{config.SELF_ADDRESS}/file"

@@ -62,7 +62,7 @@ def add_task(user: models.User, task_init: models.TaskInit):
         return TaskSimpleInfo(**response.json())
     
     logger.error(f"Can not add new task: '{response.content}' ({response.status_code})")
-    return False
+    return None
 
 def get_task(id: str):
     with Session(engine) as session:

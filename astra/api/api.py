@@ -46,7 +46,7 @@ async def on_shutdown():
 async def task_status(task_info: schema.TaskSimpleInfo):
     pass
 
-@app.get('/file/{task_id}')
+@app.get('/file')
 async def get_file(task_id: str):
     task = core.get_task(task_id)
     if task is None:
