@@ -83,4 +83,5 @@ class CeleryTaskSync:
             )
 
             recv.capture(limit=None, timeout=None, wakeup=True)
+            
 

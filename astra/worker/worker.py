@@ -49,9 +49,16 @@ def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
         with requests.get(file_webhook, timeout=5000) as r:
             if r.status_code == 200:
                 r.raw.decode_content = True
-                r_bytes = r.content
-                r_filehash = utils.hash(r_bytes)
+                
+                hash = utils.HashIO()
+                with open(filepath, 'wb') as f:
+                    for chunk in r.iter_content(65536, False):
+                        hash.update(chunk)
+                        f.write(chunk)
+                    r_filehash = str(hash)
+
                 if filehash != r_filehash:
+                    filepath.unlink(True)
                     raise Exception(
                         f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})"
                     )

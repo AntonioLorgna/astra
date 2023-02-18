@@ -25,11 +25,7 @@ async def root_redirect():
 @app.put("/task")
 async def add_task(
     user_id: str,
-    model: str,
-    filehash: str,
-    audio_duration_sec: float,
-    file_webhook: HttpUrl,
-    status_webhook: HttpUrl
+    task_init: models.TaskInit
 ):
     # Validate if same file already processed
     with Session(db.engine) as session:
@@ -38,7 +34,7 @@ async def add_task(
             raise HTTPException(404, "User not found!")
 
         expression = select(models.Task).where(
-            models.Task.filehash == filehash,
+            models.Task.filehash == task_init.filehash,
             models.Task.status.in_(
                 [
                     task_states.PENDING,
@@ -53,7 +49,7 @@ async def add_task(
         db_task: models.Task = None
         # Check if better model or same transcribed already
         for exist_task in exist_tasks:
-            if WhisperModels.is_more_accurate(model, exist_task.model, True):
+            if WhisperModels.is_more_accurate(task_init.model, exist_task.model, True):
                 db_task = exist_task
                 break
 
@@ -84,11 +80,11 @@ async def add_task(
 
         db_task = models.Task(
             id=id,
-            filehash=filehash,
-            model=model,
-            audio_duration=audio_duration_sec,
-            status_webhook=status_webhook,
-            file_webhook=file_webhook
+            filehash=task_init.filehash,
+            model=task_init.model,
+            audio_duration=task_init.audio_duration,
+            status_webhook=task_init.status_webhook,
+            file_webhook=task_init.file_webhook
         )
         db_task.users.append(user)
 
@@ -97,7 +93,12 @@ async def add_task(
         session.commit()
 
         celery.transcribe.apply_async(
-            args=(model, filehash, file_webhook), task_id=str(id), queue=model
+            args=(
+                task_init.model, 
+                task_init.filehash, 
+                task_init.file_webhook), 
+            task_id=str(id), 
+            queue=task_init.model
         )
 
         return TaskSimpleInfo(id=db_task.id, status=db_task.status)

@@ -27,4 +27,8 @@ if os.environ.get("DEV_PORT") is not None:
     # debugpy.wait_for_client()
 
 app = CeleryTaskSync(celery_app)
-app.capture()
+try:
+    app.capture()
+except KeyboardInterrupt or SystemExit:
+    
+    logger.info("Shutting down celery-db syncronization now")

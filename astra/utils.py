@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
@@ -99,19 +100,6 @@ def logging_setup(logger=None, level=20, formatter="%(levelname)s: %(message)s")
     consoleHandler.setFormatter(logFormatter)
     logger.addHandler(consoleHandler)
 
-def hash(data: bytes) -> str:
-    """Генерирует хэш sha256 и кодирует в base64 и в строку utf-8.
-
-    Args:
-        data (bytes): Байты для кодировки.
-
-    Returns:
-        str: Строка содержащая base64 символы длиной 44.
-    """
-
-    hash_d = hashlib.sha256(data).digest()
-    b64 = base64.urlsafe_b64encode(hash_d)
-    return b64.decode("utf-8")
 
 
 def fire_and_forget(coro):
@@ -134,3 +122,28 @@ def devport_init():
         port = int(os.environ.get("DEV_PORT"))
         import debugpy
         debugpy.listen(("0.0.0.0", port))
+
+def hash(data: bytes):
+    return hashlib.sha256(data).digest()
+
+def hash_stringify(hash_digest: bytes):
+    b64 = base64.urlsafe_b64encode(hash_digest)
+    return b64.replace(b'=', b'').decode("utf-8")
+
+class HashIO:
+    def __init__(self, algo = hashlib.sha256()) -> None:
+        self.algo = algo
+
+    def update(self, buffer: bytes):
+        self.algo.update(buffer)
+    
+    def digest(self):
+        return self.algo.digest()
+    def hexdigest(self):
+        return self.algo.hexdigest()
+    
+    def __str__(self) -> str:
+        hash_stringify(self.algo.digest())
+
+    def __repr__(self) -> str:
+        return str(self)

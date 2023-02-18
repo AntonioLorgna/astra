@@ -41,7 +41,5 @@ def get_ngrok_hostname():
         if not response.ok: return None
    
         return response.json()['tunnels'][0]['public_url']
-    except KeyError:
+    except KeyError or ConnectionError:
         return None
-    except ConnectionError:
-        raise Exception("No HOSTNAME defined and ngrok not started!")

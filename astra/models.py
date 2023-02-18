@@ -47,15 +47,18 @@ class Result(SQLModel, table=True):
     result: str = Field(nullable=False)
     ok: bool = Field()
 
-class TaskBase(SQLModel):
-    id: UUID4 = Field(primary_key=True, unique=True)
-    status: str = Field(default=task_states.PENDING)
 
+class TaskInit(SQLModel):
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
     model: str = Field(index=True)
     status_webhook: HttpUrl | None = Field(default=None)
     file_webhook: HttpUrl = Field()
+
+
+class TaskBase(TaskInit):
+    id: UUID4 = Field(primary_key=True, unique=True)
+    status: str = Field(default=task_states.PENDING)
 
     reruns: int = Field(default=0)
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
