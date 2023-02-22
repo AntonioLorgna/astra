@@ -7,10 +7,10 @@ from stable_whisper.stabilization import tighten_timestamps
 from whisper import _download, _MODELS
 from datetime import timedelta, datetime
 from pathlib import Path
-from astra.schema import Segment, TranscribeResult
+from astra.core.schema import Segment, TranscribeResult
 from astra.static.whisper_models import WhisperModels
 import re, itertools, os, calendar, logging, torch
-import astra.utils as utils
+import astra.misc.utils as utils
 
 logger = logging.getLogger(__name__)
 

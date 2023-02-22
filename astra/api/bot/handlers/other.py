@@ -3,12 +3,12 @@ import uuid
 from aiogram import Dispatcher
 from aiogram.types import Message
 from sqlmodel import Session
-from astra import models
+from astra.core import models
 from astra.api import core
-from astra import db
+from astra.core import db
 from astra.api.utils import download_tg_file, short_uuid
 
-from astra.utils import HashIO
+from astra.misc.utils import HashIO
 from astra.api.utils import build_file_wh, build_status_wh
 
 

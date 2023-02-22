@@ -2,14 +2,14 @@ from datetime import datetime
 from celery import Celery
 from celery.events.receiver import EventReceiver
 from celery.result import AsyncResult
-from astra import db
-from astra import models
-from astra import schema
-from astra.schema import task_states
+from astra.core import db
+from astra.core import models
+from astra.core import schema
+from astra.core.schema import task_states
 from astra.sync import webhooks
 from sqlmodel import Session
 from logging import getLogger
-from astra.utils import logging_setup
+from astra.misc.utils import logging_setup
 import asyncio, inspect
 
 logger = getLogger(__name__)

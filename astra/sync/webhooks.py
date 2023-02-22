@@ -1,10 +1,10 @@
 from logging import getLogger
-from astra import models
-from astra import schema
+from astra.core import models
+from astra.core import schema
 import requests
 
-from astra.schema import TaskInfo
-from astra.utils import logging_setup
+from astra.core.schema import TaskInfo
+from astra.misc.utils import logging_setup
 
 logger = getLogger(__name__)
 logging_setup(logger)

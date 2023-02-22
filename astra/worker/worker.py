@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os, requests, logging
 from celery.app import defaults as celery_defaults
 from sys import stdout
-from astra import utils
+from astra.misc import utils
 from astra.static.whisper_models import WhisperModels
 from astra.worker.whisper import Whisper
 from kombu import Queue

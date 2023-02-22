@@ -5,11 +5,11 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 import logging
 from sqlmodel import Session, delete, select
-from astra import utils
+from astra.misc import utils
 from astra.api import config
-from astra import db
-from astra import models
-from astra import schema
+from astra.core import db
+from astra.core import models
+from astra.core import schema
 from astra.api import core
 from astra.api.bot import (
     start_bot,
@@ -19,8 +19,8 @@ from astra.api.bot import (
     process_wh_update,
 )
 from astra.api.utils import short_uuid
-from astra.schema import task_states
-from astra.utils import result_stringify
+from astra.core.schema import task_states
+from astra.misc.utils import result_stringify
 import orjson
 
 logger = logging.getLogger(__name__)

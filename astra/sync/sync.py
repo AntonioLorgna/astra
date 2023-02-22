@@ -3,7 +3,7 @@ load_dotenv('app.env')
 from sys import stdout
 import os
 import logging
-from astra.utils import logging_setup
+from astra.misc.utils import logging_setup
 logger = logging.getLogger(__name__)
 logging_setup(logger)
 from astra.sync.celery_events import CeleryTaskSync

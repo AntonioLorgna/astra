@@ -2,7 +2,7 @@ from pathlib import Path
 from aiogram.types.mixins import Downloadable
 from pydantic import UUID4
 
-from astra.utils import HashIO
+from astra.misc.utils import HashIO
 from astra.api import config
 
 async def download_tg_file(
