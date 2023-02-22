@@ -7,14 +7,16 @@ from astra.core.schema import task_states
 from sqlalchemy import func
 
 
-
-class ServiceAccount(SQLModel, table=True):
-    __tablename__ = "service_account"
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
-
+class ServiceAccountBase(SQLModel):
     service_id: str = Field(index=True)
     service_name: str = Field(nullable=False)
     user_id: UUID4 = Field(default=None, foreign_key="user.id")
+
+
+class ServiceAccount(ServiceAccountBase, table=True):
+    __tablename__ = "service_account"
+    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
+
     user: "User" = Relationship(back_populates="accounts")
     tasks: List["Task"] = Relationship(back_populates="account")
     posts: List["Post"] = Relationship(back_populates="account")
@@ -32,9 +34,7 @@ class User(UserBase, table=True):
     posts: List["Post"] = Relationship(back_populates="user")
 
 
-class Job(SQLModel, table=True):
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
-
+class JobBase(SQLModel):
     filehash: str = Field(index=True)
     model: str = Field(index=True)
     model_quality: int = Field()
@@ -46,18 +46,20 @@ class Job(SQLModel, table=True):
 
     result: str | None = Field(default=None)
 
+
+class Job(JobBase, table=True):
+    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
+
     tasks: List["Task"] = Relationship(back_populates="job")
 
     def get_queue_position(self, session: Session):
         statement = select([func.count(Job.id)]).where(
-            Job.createdAt < self.createdAt,
-            Job.endedAt == None,
-            Job.startedAt != None
+            Job.createdAt < self.createdAt, Job.endedAt == None, Job.startedAt != None
         )
         return session.exec(statement).one()
 
 
-class TaskInit(SQLModel):
+class TaskBase(SQLModel):
     filehash: str = Field(index=True)
     audio_duration: float = Field(index=False)
     model: str = Field(index=True)
@@ -65,23 +67,21 @@ class TaskInit(SQLModel):
     file_webhook: HttpUrl = Field()
     user_id: UUID4 = Field(foreign_key="user.id")
     account_id: UUID4 = Field(foreign_key="service_account.id")
-
-
-class Task(TaskInit, table=True):
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
-
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
 
     job_id: UUID4 = Field(foreign_key="job.id")
+
+
+class Task(TaskBase, table=True):
+    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
+
     job: Job = Relationship(back_populates="tasks")
     user: User = Relationship(back_populates="tasks")
     account: ServiceAccount = Relationship(back_populates="tasks")
     posts: List["Post"] = Relationship(back_populates="task")
 
 
-class Post(SQLModel, table=True):
-    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
-
+class PostBase(SQLModel):
     type: str = Field(default="post")
     status: str = Field(default="visible")
     title: str = Field(default="")
@@ -91,9 +91,13 @@ class Post(SQLModel, table=True):
     account_id: UUID4 = Field(foreign_key="service_account.id")
     task_id: UUID4 = Field(foreign_key="task.id")
 
+    createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
+    updatedAt: datetime | None = Field(default=None, nullable=True)
+
+
+class Post(PostBase, table=True):
+    id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
+
     user: User = Relationship(back_populates="posts")
     account: ServiceAccount = Relationship(back_populates="posts")
     task: Task = Relationship(back_populates="posts")
-
-    createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
-    updatedAt: datetime | None = Field(default=None, nullable=True)

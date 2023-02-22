@@ -24,7 +24,7 @@ async def root_redirect():
 
 
 @app.post("/task")
-async def add_task(task_init: models.TaskInit):
+async def add_task(task_init: models.TaskBase):
     with Session(db.engine) as session:
         user = session.get(models.User, task_init.user_id)
         if user is None:

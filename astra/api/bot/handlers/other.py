@@ -29,7 +29,7 @@ async def process_audio(msg: Message):
         if not (account or user):
             user, account = core.add_user_tg(tg_id=tg_id, session=session, limit_seconds=1000)
         
-        task_init = models.TaskInit(
+        task_init = models.TaskBase(
             filehash=hash,
             audio_duration=downloadable.duration,
             model='large',

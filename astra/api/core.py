@@ -69,7 +69,7 @@ def add_user_tg(tg_id: str, session: Session, role: int = 0, limit_seconds: int 
     session.commit()
     return (user, account)
 
-async def add_task(task_init: models.TaskInit):
+async def add_task(task_init: models.TaskBase):
     payload = task_init.json()
     headers = {
         'Content-type': 'application/json'
