@@ -26,7 +26,7 @@ def add_user(role: int = 0, limit_seconds: int = 0):
     with Session(engine) as session:
         user = models.User(
             role=role, 
-            limit_seconds=limit_seconds)
+            bank_seconds=limit_seconds)
         
         session.add(user)
         session.commit()
@@ -53,7 +53,7 @@ def add_user_tg(tg_id: str, session: Session, role: int = 0, limit_seconds: int 
     session.execute('LOCK TABLE "user" IN ACCESS EXCLUSIVE MODE;')
     user = models.User(
         role=role, 
-        limit_seconds=limit_seconds)
+        bank_seconds=limit_seconds)
     
     session.add(user)
     session.commit()

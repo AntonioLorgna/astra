@@ -153,3 +153,7 @@ class HashIO:
 
 def result_stringify(result: schema.TranscribeResult, spliter: str="\n"):
     return spliter.join([seg.text for seg in result.segments])
+
+
+def short_uuid(id: str|UUID4, lenght: int = 8):
+    return str(id).split('-')[0][:lenght]
