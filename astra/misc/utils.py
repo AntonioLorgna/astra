@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
-from astra import schema
+from astra.core import schema
 import logging
 import json
 

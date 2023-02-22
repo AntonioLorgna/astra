@@ -3,7 +3,7 @@ from uuid import uuid4
 from sqlmodel import Field, Relationship, SQLModel, Session, select
 from pydantic import UUID4, HttpUrl
 from datetime import datetime
-from astra.schema import task_states
+from astra.core.schema import task_states
 from sqlalchemy import func
 
 
