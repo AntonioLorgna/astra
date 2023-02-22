@@ -9,7 +9,7 @@ import os
 if os.environ.get("DB_URL") is None:
     raise Exception("DB_URL is empty!")
 
-engine = _create_engine(os.environ.get("DB_URL"))
+engine = _create_engine(os.environ.get("DB_URL"), isolation_level="READ UNCOMMITTED")
 
 
 def create_db_and_tables():

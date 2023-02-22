@@ -44,27 +44,33 @@ setup:
 
 .PHONY: start-app-supervizor
 start-app-supervizor: 
+	exec > >(trap "" INT TERM; sed 's/^/SUPERV: /') &&\
 	source ./venv/bin/activate && DEV_PORT=7010 uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000 --workers 1
 
 .PHONY: start-app-sync
 start-app-sync: 
+	exec > >(trap "" INT TERM; sed 's/^/SYNC: /') &&\
 	source ./venv/bin/activate && DEV_PORT=7020 python3 -m astra.sync 
 	
 .PHONY: start-app-worker
 start-app-worker: 
-	source ./venv/bin/activate && DEV_PORT=7030 celery -A astra.worker:app worker -P solo -l info 
+	exec > >(trap "" INT TERM; sed 's/^/WORKER: /') &&\
+	source ./venv/bin/activate && celery -A astra.worker:app worker -P gevent -c 1 -l info 
 
 .PHONY: start-app-ngrok
 start-app-ngrok: 
+	exec > >(trap "" INT TERM; sed 's/^/NGROK: /') &&\
 	ngrok http 8080 > /dev/null &
 
 .PHONY: start-app-api
 start-app-api: 
+	exec > >(trap "" INT TERM; sed 's/^/API: /') &&\
 	source ./venv/bin/activate && DEV_PORT=7040 uvicorn astra.api:app --host 0.0.0.0 --port 8080 --workers 1
 
 .PHONY: start-app-flower
 start-app-flower: 
-	source ./venv/bin/activate && DEV=Yes celery -A astra.flower:app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
+	exec > >(trap "" INT TERM; sed 's/^/FLOWER: /') &&\
+	source ./venv/bin/activate && celery -A astra.flower:app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
 
 .PHONY: start-app
 start-app: start-app-worker start-app-supervizor start-app-sync start-app-flower start-app-api
@@ -90,6 +96,7 @@ docker-build:
 
 .PHONY: docker-start
 docker-start:
+	exec > >(trap "" INT TERM; sed 's/^/DOCKER: /') &&\
 	docker compose up $(DOCKER_SERVICES) -d
 
 .PHONY: docker-stop
@@ -107,6 +114,10 @@ docker-status:
 
 .PHONY: db-drop
 db-drop:
+	sudo echo ""
+	make docker-stop
 	sudo rm -frd ./data/postgres
 	sudo rm -frd ./data/redis
 	sudo rm -frd ./data/flower.db
+	sudo rm -frd ./data/bot
+	sudo rm -frd ./data/media

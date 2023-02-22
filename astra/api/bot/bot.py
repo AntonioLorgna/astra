@@ -23,7 +23,7 @@ def start_bot():
 
 async def stop_bot():
     s = await Bot.get_current().get_session()
-    s.close()
+    await s.close()
 
 
 async def set_bot_webhook():

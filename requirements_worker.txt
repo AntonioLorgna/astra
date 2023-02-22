@@ -8,3 +8,5 @@ torch
 git+https://github.com/openai/whisper.git
 stable-ts~=1.0.1
 debugpy
+gevent
+orjson

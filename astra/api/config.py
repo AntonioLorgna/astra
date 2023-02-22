@@ -1,5 +1,7 @@
 from os import environ
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv("api.env")
 
 
 SELF_ADDRESS: str = environ.get('SELF_ADDRESS')
@@ -16,8 +18,12 @@ if TG_WH_HOSTNAME is None:
 if environ.get("MEDIA_DIR") is None:
     raise Exception("MEDIA_DIR is empty!")
 MEDIA_DIR = Path(environ.get("MEDIA_DIR"))
-MEDIA_DIR.mkdir(exist_ok=True)
+MEDIA_DIR.mkdir(exist_ok=True, parents=True)
 
 TOKEN: str = environ.get("TG_TOKEN")
 if TOKEN is None:
     raise Exception("TG_TOKEN is empty!")
+
+DB_URL = environ.get("DB_URL")
+if DB_URL is None:
+    raise Exception("DB_URL is empty!")

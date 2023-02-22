@@ -3,21 +3,13 @@ load_dotenv('app.env')
 from sys import stdout
 import os
 import logging
+from astra.utils import logging_setup
+logger = logging.getLogger(__name__)
+logging_setup(logger)
 from astra.sync.celery_events import CeleryTaskSync
 from astra.core.celery import app as celery_app
 
 os.environ["SYNC"] = "Yes"
-
-
-logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.INFO) # set logger level
-logFormatter = logging.Formatter\
-("%(levelname)s: %(message)s")
-
-consoleHandler = logging.StreamHandler(stdout) #set streamhandler to stdout
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
 
 
 if os.environ.get("DEV_PORT") is not None:

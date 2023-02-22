@@ -17,7 +17,7 @@ class TranscribeResult(BaseModel):
     datetime_base: datetime
 
 
-class TaskSimpleInfo(BaseModel):
+class TaskInfo(BaseModel):
     id: UUID4
     status: str
     result: str|None = Field(default=None)

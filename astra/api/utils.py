@@ -1,5 +1,6 @@
 from pathlib import Path
 from aiogram.types.mixins import Downloadable
+from pydantic import UUID4
 
 from astra.utils import HashIO
 from astra.api import config
@@ -37,3 +38,6 @@ def build_status_wh():
     return f"{config.SELF_ADDRESS}/status"
 def build_file_wh():
     return f"{config.SELF_ADDRESS}/file"
+
+def short_uuid(id: str|UUID4, lenght: int = 8):
+    return str(id).split('-')[0][:lenght]

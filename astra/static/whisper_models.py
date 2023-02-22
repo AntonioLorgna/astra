@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from dataclasses import dataclass
 
 
@@ -27,6 +28,11 @@ class WhisperModels:
         ),
     }
 
+    def get_params(modelname:str):
+        model = WhisperModels._DATA.get(modelname)
+        if model is None: return None
+        return model.parameters
+
     def list_models():
         return list(WhisperModels._DATA.keys())
 
@@ -43,6 +49,14 @@ class WhisperModels:
             return model_a.parameters <= model_b.parameters
 
         return model_a.parameters < model_b.parameters
+    
+    def get_more_accurate(modelname: str, or_same=False, sort_desc=True):
+        model = WhisperModels._DATA.get(modelname)
+        ordered = OrderedDict(sorted(WhisperModels._DATA.items(), key=lambda m: m[1].parameters, reverse=sort_desc))
+        return [n for n, m in ordered.items() 
+                if m.parameters > model.parameters or \
+                    (or_same and m.parameters == model.parameters)]
+
 
     def mem_usage(modelname: str):
         model = WhisperModels._DATA.get(modelname)

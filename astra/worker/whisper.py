@@ -59,11 +59,13 @@ class Whisper(metaclass=utils.Singleton):
         self.limit_loaded_models = limit_loaded_models
 
     def transcribe(self, file: Path, model_name: str, datetime_base: datetime = None):
+
         model = self._get_model(model_name=model_name)
         result = model.transcribe(str(file.resolve()))
 
         if datetime_base is None:
             datetime_base = datetime.now()
+
         segments = self._result_to_segments(result, datetime_base)
 
         return TranscribeResult(segments=segments, datetime_base=datetime_base)
@@ -85,12 +87,16 @@ class Whisper(metaclass=utils.Singleton):
         model_ml = load_model(
             model_name, torch.device(device.idx), self.models_directory
         )
-        self._loaded_models[model_name] = model_ml
-        self._loaded_models = OrderedDict(
-            sorted(
-                self._loaded_models.items(), key=lambda m: WhisperModels.mem_usage(m[1])
+        try:
+            self._loaded_models[model_name] = model_ml
+            self._loaded_models = OrderedDict(
+                sorted(
+                    self._loaded_models.items(), key=lambda m: WhisperModels.mem_usage(m[0])
+                )
             )
-        )
+        except Exception as e:
+            logger.error(e)
+            raise e
 
         logger.info(f"Loaded! Models in memory: {list(self._loaded_models.keys())}")
         return self._loaded_models[model_name]
@@ -178,9 +184,9 @@ class Whisper(metaclass=utils.Singleton):
                 d = datetime(year=year_i, month=month_i, day=day_i)
                 return f"{date_str[0]}[{date_str[1:-1]}]({d.strftime('%d.%m.%Y')}){date_str[-1]}"
 
-            text_w_dates = re.sub(regex, replacer_date, seg["text"], 0, re.UNICODE)
+            # text_w_dates = re.sub(regex, replacer_date, seg["text"], 0, re.UNICODE)
 
-            return Segment(start=start, end=end, text=text_w_dates)
+            return Segment(start=start, end=end, text=seg["text"])
 
         segments = [format_segment(seg) for seg in segments]
         return segments

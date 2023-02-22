@@ -4,60 +4,73 @@ from celery.events.receiver import EventReceiver
 from celery.result import AsyncResult
 from astra import db
 from astra import models
+from astra import schema
 from astra.schema import task_states
 from astra.sync import webhooks
 from sqlmodel import Session
 from logging import getLogger
+from astra.utils import logging_setup
 import asyncio, inspect
 
 logger = getLogger(__name__)
+logging_setup(logger)
 
 class AsyncReceiver(EventReceiver):
     def process(self, type, event):
         """Process event by dispatching to configured handler."""
-        handler = self.handlers.get(type) or self.handlers.get('*')
-        if not handler: return
+        handler = self.handlers.get(type) or self.handlers.get("*")
+        if not handler:
+            return
         if not inspect.iscoroutinefunction(handler):
             handler(event)
             return
-            
+
         loop = asyncio.get_event_loop()
         loop.create_task(handler(event))
-        
 
 
-def _update_task(uuid: str, set_status: str, set_result=None):    
+def _update_task(job_id: str, set_status: str, set_result=None):
     with Session(db.engine) as session:
-        db_task:models.Task = session.get(models.Task, uuid)
-        if db_task is None:
-            raise Exception(f"Task has id, but not exist in DB! ({uuid})")
-        db_task.status = set_status
+        db_job = session.get(models.Job, job_id)
+        if db_job is None:
+            logger.error(f"Job has id, but not exist in DB! ({job_id})")
+            return
+            # raise Exception(f"Task has id, but not exist in DB! ({uuid})")
+
+        session.begin_nested()
+        session.execute('LOCK TABLE "job" IN ACCESS EXCLUSIVE MODE;')
+        db_job.status = set_status
+
+        if set_status == task_states.STARTED:
+            db_job.startedAt = datetime.now()
+
         if set_result is not None:
-            result = models.Result(
-                task=db_task, 
-                result=set_result, 
-                ok=(set_status==task_states.SUCCESS)
-                )
-            session.add(result)
-            db_task.result = result
-            db_task.endedAt = datetime.now()
-
-        webhooks.task_status(db_task)
-
-        logger.info(f"Task '{uuid}' now has status '{db_task.status}'")
-
+            db_job.endedAt = datetime.now()
+            db_job.result = set_result
+        session.commit()
         session.commit()
 
-def task_event_process(event):
-    r = AsyncResult(id=event["uuid"])
+        webhooks.task_status(
+            db_job, 
+            status=set_status, 
+            result=set_result, 
+            ok=db_job.status == schema.task_states.SUCCESS if db_job.endedAt else True)
 
-    loop = asyncio.get_event_loop()
-    coro = None
-    if r.ready():
-        coro = _update_task(event["uuid"], r.state, r.result)
-    else:
-        coro = _update_task(event["uuid"], r.state)
-    loop.create_task(coro)
+        logger.info(f"Job '{job_id}' now has status '{db_job.status}'")
+
+
+def task_event_process_generate(status: str):
+    def task_event_process(event):
+        r = AsyncResult(id=event["uuid"])
+        loop = asyncio.get_event_loop()
+        coro = None
+        if r.ready():
+            coro = _update_task(event["uuid"], status, r.result)
+        else:
+            coro = _update_task(event["uuid"], status)
+        # loop.create_task(coro)
+
+    return task_event_process
 
 
 class CeleryTaskSync:
@@ -72,16 +85,14 @@ class CeleryTaskSync:
             recv = self.app.events.Receiver(
                 connection,
                 handlers={
-                    "task-sent": task_event_process,
-                    "task-received": task_event_process,
-                    "task-started": task_event_process,
-                    "task-succeeded": task_event_process,
-                    "task-failed": task_event_process,
-                    "task-rejected": task_event_process,
-                    "task-retried": task_event_process,
+                    "task-sent": task_event_process_generate(task_states.PENDING),
+                    "task-received": task_event_process_generate(task_states.RECEIVED),
+                    "task-started": task_event_process_generate(task_states.STARTED),
+                    "task-succeeded": task_event_process_generate(task_states.SUCCESS),
+                    "task-failed": task_event_process_generate(task_states.FAILURE),
+                    "task-rejected": task_event_process_generate(task_states.REJECTED),
+                    "task-retried": task_event_process_generate(task_states.RETRY),
                 },
             )
 
             recv.capture(limit=None, timeout=None, wakeup=True)
-            
-

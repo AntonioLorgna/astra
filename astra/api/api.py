@@ -1,20 +1,16 @@
 from datetime import timedelta
 from aiogram import Bot, Dispatcher
-from dotenv import load_dotenv
-
-load_dotenv("api.env")
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 import logging
 from sqlmodel import Session, delete, select
 from astra import utils
+from astra.api import config
 from astra import db
 from astra import models
 from astra import schema
 from astra.api import core
-from astra.api import config
 from astra.api.bot import (
     start_bot,
     stop_bot,
@@ -22,9 +18,10 @@ from astra.api.bot import (
     set_bot_webhook,
     process_wh_update,
 )
+from astra.api.utils import short_uuid
 from astra.schema import task_states
 from astra.utils import result_stringify
-import json
+import orjson
 
 logger = logging.getLogger(__name__)
 utils.logging_setup(logger)
@@ -42,8 +39,6 @@ def test_helloworld():
 
 @app.on_event("startup")
 async def on_startup():
-    # DB
-    db.create_db_and_tables()
     # TG
     await set_bot_webhook()
 
@@ -54,36 +49,49 @@ async def on_shutdown():
     await stop_bot()
 
 
-@app.post(get_bot_wh_path())(process_wh_update)
+app.post(get_bot_wh_path())(process_wh_update)
+
 @app.post("/status")
-async def process_task_status(task_info: schema.TaskSimpleInfo):
+async def process_task_status(task_info: schema.TaskInfo):
     bot = Bot.get_current()
 
     with Session(db.engine) as session:
         task = session.get(models.Task, task_info.id)
         if task is None:
-            raise Exception(
+            raise HTTPException( 404,
                 f"Task with id '{task_info.id}' does not exist, but task_info contains it"
             )
         user_id = task.account.service_id
+        job = task.job
+        if job is None:
+            raise HTTPException( 404,
+                f"Task with id '{task_info.id}' does not have Job"
+            )
 
         if task_info.status != task_states.SUCCESS:
-            bot.send_message(
-                user_id, f"Ваша задача находится в статусе {task_info.status}"
-            )
+            position = job.get_queue_position(session)
+            if position == 0:
+                await bot.send_message(
+                    user_id, f"#T{short_uuid(task_info.id)} Статус: {task_info.status}, в обработке"
+                )
+            else:
+                await bot.send_message(
+                    user_id, f"#T{short_uuid(task_info.id)} Статус: {task_info.status}, позиция в очереди: {position}"
+                )
             return
-        result = schema.TranscribeResult(**json.loads(task_info.result))
-        execution_time = timedelta(task.endedAt - task.createdAt)
-        bot.send_message(user_id, f"Анализ завершён за {execution_time.seconds} секунд")
-        bot.send_message(user_id, result_stringify(result, " "))
+        result = schema.TranscribeResult(**orjson.loads(task_info.result))
+        execution_time: timedelta = job.endedAt - job.createdAt
+        await bot.send_message(user_id, f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек.")
+        await bot.send_message(user_id, result_stringify(result, " "))
 
 
 @app.get("/file")
-async def get_file(task_id: str):
-    task = core.get_task(task_id)
-    if task is None:
-        return HTTPException(404, "Task not found.")
-    filepath = config.MEDIA_DIR / task.filehash
-    if not filepath.is_file():
-        return HTTPException(410, "File removed.")
-    return FileResponse(filepath)
+async def get_file(job_id: str = Body(embed=True)):
+    with Session(db.engine) as session:
+        job = session.get(models.Job, job_id)
+        if job is None:
+            raise HTTPException(404, f"job not found ({job_id})")
+        filepath = config.MEDIA_DIR / job.filehash
+        if not filepath.is_file():
+            raise HTTPException(410, "File removed.")
+        return FileResponse(filepath)

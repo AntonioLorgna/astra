@@ -4,6 +4,7 @@ from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
 from astra import schema
+import logging
 import json
 
 logger = getLogger(__name__)
@@ -88,7 +89,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def logging_setup(logger=None, level=20, formatter="%(levelname)s: %(message)s"):
+def logging_setup(logger=None, level=logging.INFO, formatter="%(levelname)s: %(message)s"):
     import logging
     from sys import stdout
 
@@ -133,19 +134,19 @@ def hash_stringify(hash_digest: bytes):
     return b64.replace(b'=', b'').decode("utf-8")
 
 class HashIO:
-    def __init__(self, algo = hashlib.sha256()) -> None:
-        self.algo = algo
+    def __init__(self, algo = hashlib.sha256) -> None:
+        self._hash = algo()
 
     def update(self, buffer: bytes):
-        self.algo.update(buffer)
+        self._hash.update(buffer)
     
     def digest(self):
-        return self.algo.digest()
+        return self._hash.digest()
     def hexdigest(self):
-        return self.algo.hexdigest()
+        return self._hash.hexdigest()
     
     def __str__(self) -> str:
-        hash_stringify(self.algo.digest())
+        return hash_stringify(self._hash.digest())
 
     def __repr__(self) -> str:
         return str(self)

@@ -4,6 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    
     {
       "name": "Python: Current File",
       "type": "python",
@@ -13,12 +14,12 @@
       "justMyCode": true
     },
     {
-      "name": "Python: Remote Attach",
+      "name": "supervizor",
       "type": "python",
       "request": "attach",
       "connect": {
         "host": "0.0.0.0",
-        "port": 7000,
+        "port": 7010,
         "retries": 10
       },
       "pathMappings": [
@@ -27,6 +28,54 @@
           "remoteRoot": "/astra"
         }
       ]
-    }
+    },
+    {
+      "name": "sync",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "0.0.0.0",
+        "port": 7020,
+        "retries": 10
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/astra"
+        }
+      ]
+    },
+    {
+      "name": "worker",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "0.0.0.0",
+        "port": 7030,
+        "retries": 10
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/astra"
+        }
+      ]
+    },
+    {
+      "name": "api",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "0.0.0.0",
+        "port": 7040,
+        "retries": 10
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/astra"
+        }
+      ]
+    },
   ]
 }

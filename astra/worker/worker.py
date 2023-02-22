@@ -42,13 +42,14 @@ app = celery.app
 app.conf.task_queues = tuple(Queue(name) for name in whisper_instance.avaliable_models)
 
 
-def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
+def transcribe(job_id: str, model: str, filehash: str, file_webhook: str)->str:
     filepath = MEDIA_DIR / str(filehash)
 
     if not filepath.is_file():
-        r = requests.get(file_webhook, timeout=5, json={'task_id':task_id})
+        headers = {"accept": "*/*", "Content-Type": "application/json"}
+        r = requests.get(file_webhook, timeout=5, json={'job_id':job_id}, headers=headers)
         if not r.ok:
-            raise Exception("Не удаётся скачать файл")
+            raise Exception(f"Не удаётся скачать файл! (code: {r.status_code} msg: {r.text})")
         
         r.raw.decode_content = True
         
@@ -57,15 +58,13 @@ def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
             for chunk in r.iter_content(65536, False):
                 hash.update(chunk)
                 f.write(chunk)
-            r_filehash = str(hash)
+        r_filehash = str(hash)
 
         if filehash != r_filehash:
-            filepath.unlink(True)
+            # filepath.unlink(True)
             raise Exception(
-                f"Файл повреждён, хэш не совпадает ({r_filehash}!={filehash})"
+                f"Файл повреждён, хэш не совпадает ({r_filehash} != {filehash})"
             )
-        filepath.write_bytes(r_bytes)
-        r_bytes = None
                 
 
     res = whisper_instance.transcribe(
@@ -75,7 +74,7 @@ def transcribe(task_id: str, model: str, filehash: str, file_webhook: str):
     if os.environ.get("DEV") is None:
         filepath.unlink(True)
 
-    return res.dict()
+    return res.json(sort_keys=True, indent=2, ensure_ascii=False)
 
 
 celery.worker_transcribe_func = transcribe
