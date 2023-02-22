@@ -1,22 +1,14 @@
-from sys import stdout
 from dotenv import load_dotenv
-import os
-
 load_dotenv("app.env")
+from astra.misc.utils import logging_setup
+import os
 os.environ["FLOWER"] = "Yes"
 
 import logging
 
 logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.INFO)
-logFormatter = logging.Formatter("%(levelname)s: %(message)s")
-
-consoleHandler = logging.StreamHandler(stdout)
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
+logging_setup(logger)
 
 
 from astra.core import celery
-
 app = celery.app
