@@ -52,7 +52,6 @@ class User(UserBase, table=True):
     def create_from_tg(
         session: Session, tg_id: str, role: int = 0, bank_seconds: int = 0
     ) -> Tuple["User", ServiceAccount]:
-        
         user_init = UserBase(role=role, bank_seconds=bank_seconds)
         account_init = ServiceAccountBase(service_id=tg_id, service_name="telegram")
 
@@ -68,12 +67,9 @@ class User(UserBase, table=True):
         if data is None:
             return (None, None)
         return data
-    
+
     def get_from_account_tg(session: Session, tg_id: str):
-        account_init = ServiceAccountBase(
-            service_id=tg_id,
-            service_name='telegram'
-        )
+        account_init = ServiceAccountBase(service_id=tg_id, service_name="telegram")
         return User.get_from_account(session, account_init)
 
     def is_can_analyse(self, audio_duration_s: int):
@@ -183,7 +179,6 @@ class Task(TaskBase, table=True):
         elif best_inqueue_job:
             job = best_inqueue_job
 
-
         if not job:
             job = Job(
                 audio_duration=job_init.audio_duration,
@@ -199,7 +194,7 @@ class Task(TaskBase, table=True):
             file_webhook=task_init.file_webhook,
             user_id=task_init.user_id,
             account_id=task_init.account_id,
-            job_id=job.id
+            job_id=job.id,
         )
         session.add(task)
 

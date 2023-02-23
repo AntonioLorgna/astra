@@ -11,15 +11,17 @@ from astra.api import config
 
 logger = getLogger(__name__)
 
+
 def start_bot():
-    bot = Bot(token=config.TG_TOKEN, parse_mode='HTML')
-    bot.data['MEDIA_DIR'] = Path(os.environ.get('MEDIA_DIR'))
+    bot = Bot(token=config.TG_TOKEN, parse_mode="HTML")
+    bot.data["MEDIA_DIR"] = Path(os.environ.get("MEDIA_DIR"))
     dp = Dispatcher(bot, storage=MemoryStorage())
     register_all_filters(dp)
     register_all_handlers(dp)
     Dispatcher.set_current(dp)
     Bot.set_current(bot)
     return (bot, dp)
+
 
 async def stop_bot():
     s = await Bot.get_current().get_session()
@@ -30,14 +32,14 @@ async def set_bot_webhook():
     bot = Bot.get_current()
     webhook_info = await bot.get_webhook_info()
 
-    if webhook_info.url == get_bot_wh_url(): return
+    if webhook_info.url == get_bot_wh_url():
+        return
 
-    await bot.set_webhook(
-        url=get_bot_wh_url()
-    )
+    await bot.set_webhook(url=get_bot_wh_url())
 
     logger.info(f"Using webhook url '{get_bot_wh_url()}' for telegram bot.")
 
-async def process_wh_update(update: dict):    
+
+async def process_wh_update(update: dict):
     telegram_update = types.Update(**update)
     await Dispatcher.get_current().process_update(telegram_update)

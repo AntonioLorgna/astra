@@ -2,10 +2,7 @@ from datetime import datetime
 from celery import Celery
 from celery.events.receiver import EventReceiver
 from celery.result import AsyncResult
-from astra.core import db
-from astra.core import models
-from astra.core import schema
-from astra.core.schema import task_states
+from astra.core import db, models, schema
 from astra.sync import webhooks
 from sqlmodel import Session
 from logging import getLogger
@@ -36,7 +33,7 @@ def _update_task(job_id: str, set_status: str, set_result=None):
 
         job.status = set_status
 
-        if set_status == task_states.STARTED:
+        if set_status == schema.task_states.STARTED:
             job.startedAt = datetime.now()
 
         if set_result is not None:
@@ -75,13 +72,13 @@ class CeleryTaskSync:
             recv = self.app.events.Receiver(
                 connection,
                 handlers={
-                    "task-sent": task_event_process_generate(task_states.PENDING),
-                    "task-received": task_event_process_generate(task_states.RECEIVED),
-                    "task-started": task_event_process_generate(task_states.STARTED),
-                    "task-succeeded": task_event_process_generate(task_states.SUCCESS),
-                    "task-failed": task_event_process_generate(task_states.FAILURE),
-                    "task-rejected": task_event_process_generate(task_states.REJECTED),
-                    "task-retried": task_event_process_generate(task_states.RETRY),
+                    "task-sent": task_event_process_generate(schema.task_states.PENDING),
+                    "task-received": task_event_process_generate(schema.task_states.RECEIVED),
+                    "task-started": task_event_process_generate(schema.task_states.STARTED),
+                    "task-succeeded": task_event_process_generate(schema.task_states.SUCCESS),
+                    "task-failed": task_event_process_generate(schema.task_states.FAILURE),
+                    "task-rejected": task_event_process_generate(schema.task_states.REJECTED),
+                    "task-retried": task_event_process_generate(schema.task_states.RETRY),
                 },
             )
 

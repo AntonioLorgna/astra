@@ -1,18 +1,10 @@
-from io import BytesIO
-import uuid
 from aiogram import Dispatcher
 from aiogram.types import Message
 from sqlmodel import Session
 from astra.api import config, core
 from astra.core import db, models, schema
 from astra.api.utils import download_tg_file, short_uuid
-
-from astra.misc.utils import HashIO
 from astra.api.utils import build_file_wh, build_status_wh
-
-
-async def hello(msg: Message):
-    await msg.answer("Hello!")
 
 
 async def process_audio(msg: Message):
@@ -28,9 +20,7 @@ async def process_audio(msg: Message):
     with Session(db.engine) as session:
         user, account = models.User.get_from_account_tg(session, tg_id)
         if not (account or user):
-            user, account = models.User.create_from_tg(
-                session, tg_id, 0, 1000
-            )
+            user, account = models.User.create_from_tg(session, tg_id, 0, 1000)
             session.commit()
 
         task_init = schema.TaskInit(
@@ -38,10 +28,9 @@ async def process_audio(msg: Message):
             file_webhook=build_file_wh(),
             user_id=user.id,
             account_id=account.id,
-
             audio_duration=downloadable.duration,
             filehash=hash,
-            model=config.USE_MODEL
+            model=config.USE_MODEL,
         )
     info = await core.add_task(task_init)
     if info is None:

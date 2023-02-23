@@ -1,18 +1,11 @@
-import asyncio
-from pathlib import Path
-from typing import List
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from pydantic import UUID4, HttpUrl, Field
-from uuid import uuid4
-from sqlmodel import Session, select
+from pydantic import UUID4
+from sqlmodel import Session
 from astra.core import celery, db
 from astra.core.schema import TaskInfo, TaskInit, task_states
-from astra.core.whisper_models import WhisperModels
 from astra.core import models
-import os
 from logging import getLogger
-from astra.core.celery import app as celery_app
 
 logger = getLogger(__name__)
 app = FastAPI()
@@ -33,7 +26,7 @@ async def add_task(task_init: TaskInit):
         account = session.get(models.ServiceAccount, task_init.account_id)
         if account is None:
             raise HTTPException(404, "ServiceAccount not found!")
-        
+
         task, job, is_new_job = models.Task.create(session, task_init, task_init)
         session.commit()
         if is_new_job:
@@ -48,12 +41,9 @@ async def add_task(task_init: TaskInit):
                 id=task.id,
                 status=job.status,
                 result=job.result,
-                ok=job.status == task_states.SUCCESS
+                ok=job.status == task_states.SUCCESS,
             )
-        return TaskInfo(
-            id=task.id,
-            status=job.status
-        )
+        return TaskInfo(id=task.id, status=job.status)
 
 
 @app.get("/task/{id}")
@@ -63,12 +53,9 @@ async def get_task(id: UUID4):
         if task is None:
             return HTTPException(404, "Task not found!")
         job = task.job
-        
+
         return TaskInfo(
-            id=task.id,
-            status=job.status,
-            result=job.result,
-            ok=job.is_ok()
+            id=task.id, status=job.status, result=job.result, ok=job.is_ok()
         )
 
 

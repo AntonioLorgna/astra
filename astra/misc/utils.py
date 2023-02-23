@@ -1,15 +1,13 @@
 from dataclasses import dataclass
-from io import BytesIO
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
-
 from pydantic import UUID4
 from astra.core import schema
 import logging
-import json
 
 logger = getLogger(__name__)
+
 
 @dataclass()
 class DeviceInfo:
@@ -91,7 +89,9 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def logging_setup(logger=None, level=logging.INFO, formatter="%(levelname)s: %(message)s"):
+def logging_setup(
+    logger=None, level=logging.INFO, formatter="%(levelname)s: %(message)s"
+):
     import logging
     from sys import stdout
 
@@ -106,9 +106,9 @@ def logging_setup(logger=None, level=logging.INFO, formatter="%(levelname)s: %(m
     logger.addHandler(consoleHandler)
 
 
-
 def fire_and_forget(coro):
     from concurrent.futures import ThreadPoolExecutor
+
     loop = asyncio.new_event_loop()
     executor = ThreadPoolExecutor(max_workers=2)
     loop.run_in_executor(executor)
@@ -118,7 +118,8 @@ def fire_and_forget(coro):
 
 def show_execute_path():
     from pathlib import Path
-    p = Path('./')
+
+    p = Path("./")
     return str(p.resolve(True))
 
 
@@ -126,44 +127,51 @@ def devport_init(wait_for_connection=False):
     if os.environ.get("DEV_PORT") is not None:
         port = int(os.environ.get("DEV_PORT"))
         import debugpy
+
         debugpy.listen(("0.0.0.0", port))
         if wait_for_connection:
             debugpy.wait_for_client()
 
+
 def hash(data: bytes):
     return hashlib.sha256(data).digest()
 
+
 def hash_stringify(hash_digest: bytes):
     b64 = base64.urlsafe_b64encode(hash_digest)
-    return b64.replace(b'=', b'').decode("utf-8")
+    return b64.replace(b"=", b"").decode("utf-8")
+
 
 class HashIO:
-    def __init__(self, algo = hashlib.sha256) -> None:
+    def __init__(self, algo=hashlib.sha256) -> None:
         self._hash = algo()
 
     def update(self, buffer: bytes):
         self._hash.update(buffer)
         return self
-    
+
     def digest(self):
         return self._hash.digest()
+
     def hexdigest(self):
         return self._hash.hexdigest()
-    
+
     def __str__(self) -> str:
         return hash_stringify(self._hash.digest())
 
     def __repr__(self) -> str:
         return str(self)
 
-def result_stringify(result: schema.TranscribeResult, spliter: str="\n"):
+
+def result_stringify(result: schema.TranscribeResult, spliter: str = "\n"):
     return spliter.join([seg.text for seg in result.segments])
 
 
-def uuid_short(id: str|UUID4, lenght: int = 8):
-    return str(id).split('-')[0][:lenght]
+def uuid_short(id: str | UUID4, lenght: int = 8):
+    return str(id).split("-")[0][:lenght]
 
-def uuid_tag(id: str|UUID4):
+
+def uuid_tag(id: str | UUID4):
     return f"#T{uuid_short(id)}"
 
 
@@ -172,8 +180,9 @@ def get_ngrok_hostname():
 
     try:
         response = requests.get("http://localhost:4040/api/tunnels", timeout=3)
-        if not response.ok: return None
-   
-        return response.json()['tunnels'][0]['public_url']
+        if not response.ok:
+            return None
+
+        return response.json()["tunnels"][0]["public_url"]
     except KeyError or ConnectionError:
         return None

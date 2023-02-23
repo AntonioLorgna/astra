@@ -20,8 +20,9 @@ class TranscribeResult(BaseModel):
 class TaskInfo(BaseModel):
     id: UUID4
     status: str
-    result: str|None = Field(default=None)
+    result: str | None = Field(default=None)
     ok: bool = Field(default=True)
+
 
 class TaskInit(BaseModel):
     audio_duration: float = Field()

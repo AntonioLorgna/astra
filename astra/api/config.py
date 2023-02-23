@@ -42,4 +42,4 @@ DB_URL = environ.get("DB_URL")
 if DB_URL is None:
     raise Exception("DB_URL is empty!")
 
-USE_MODEL = environ.get("USE_MODEL", 'small')
+USE_MODEL = environ.get("USE_MODEL", "small")
