@@ -9,7 +9,8 @@ from datetime import timedelta, datetime
 from pathlib import Path
 from astra.core.schema import Segment, TranscribeResult
 from astra.core.whisper_models import WhisperModels
-import re, itertools, os, calendar, logging, torch
+from astra.worker import config
+import re, itertools, calendar, logging, torch
 import astra.misc.utils as utils
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class Whisper(metaclass=utils.Singleton):
     ) -> None:
         super().__init__()
         env_av_model_names = set(
-            os.environ.get("WHISPER_AVALIABLE_MODELS", "").split(",")
+            config.WHISPER_AVALIABLE_MODELS.split(",")
         )
         avaliable_model_names = set(_MODELS.keys()).intersection(env_av_model_names)
         avaliable_models = set(WhisperModels.list_models()).intersection(
@@ -51,9 +52,7 @@ class Whisper(metaclass=utils.Singleton):
         resolvable_models = set(models_devices.keys())
 
         self.avaliable_models = resolvable_models
-        self.models_directory = Path(
-            os.environ.get("WHISPER_MODELS_DIR", "./data/models")
-        )
+        self.models_directory = config.WHISPER_MODELS_DIR
         self.models_devices = models_devices
         self._loaded_models: OrderedDict[str, Any] = OrderedDict()
         self.limit_loaded_models = limit_loaded_models
