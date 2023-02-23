@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from uuid import uuid4
 import orjson
 from sqlmodel import Field, Relationship, SQLModel, Session, select
@@ -6,7 +6,7 @@ from pydantic import UUID4, HttpUrl
 from datetime import datetime
 from astra.core.schema import TranscribeResult, task_states
 from sqlalchemy import func
-from astra.misc.utils import result_stringify, short_uuid
+from astra.misc.utils import result_stringify, uuid_short
 
 from astra.static.whisper_models import WhisperModels
 
@@ -14,7 +14,7 @@ from astra.static.whisper_models import WhisperModels
 class ServiceAccountBase(SQLModel):
     service_id: str = Field(index=True)
     service_name: str = Field(nullable=False)
-    user_id: UUID4|None = Field()
+    user_id: UUID4 | None = Field()
 
 
 class ServiceAccount(ServiceAccountBase, table=True):
@@ -37,7 +37,9 @@ class User(UserBase, table=True):
     tasks: List["Task"] = Relationship(back_populates="user")
     posts: List["Post"] = Relationship(back_populates="user")
 
-    def create(session: Session, user_init: UserBase, account_init: ServiceAccountBase = None):
+    def create(
+        session: Session, user_init: UserBase, account_init: ServiceAccountBase = None
+    ):
         user = User.from_orm(user_init)
         session.add(user)
         if account_init:
@@ -46,29 +48,47 @@ class User(UserBase, table=True):
             session.add(account)
             return (user, account)
         return (user, None)
-    
+
+    def create_from_tg(
+        session: Session, tg_id: str, role: int = 0, bank_seconds: int = 0
+    ) -> Tuple["User", ServiceAccount]:
+        
+        user_init = UserBase(role=role, bank_seconds=bank_seconds)
+        account_init = ServiceAccountBase(service_id=tg_id, service_name="telegram")
+
+        return User.create(session, user_init, account_init)
+
     def get_from_account(session: Session, account_init: ServiceAccountBase = None):
-        statement = select(User, ServiceAccount)\
-            .where(ServiceAccount.service_id == account_init.service_id,
-                   ServiceAccount.service_name == account_init.service_name,
-                   User.id == ServiceAccount.user_id)
+        statement = select(User, ServiceAccount).where(
+            ServiceAccount.service_id == account_init.service_id,
+            ServiceAccount.service_name == account_init.service_name,
+            User.id == ServiceAccount.user_id,
+        )
         data = session.exec(statement).first()
-        if data is None: return (None, None)
+        if data is None:
+            return (None, None)
         return data
+    
+    def get_from_account_tg(session: Session, tg_id: str):
+        account_init = ServiceAccountBase(
+            service_id=tg_id,
+            service_name='telegram'
+        )
+        return User.get_from_account(account_init)
 
     def is_can_analyse(self, audio_duration_s: int):
         if audio_duration_s < 0:
             raise ValueError(f"audio_duration_s must be greater than 0.")
         return self.bank_seconds >= audio_duration_s
-    
+
     def substract_seconds(self, substract_s: int):
         if substract_s < 0:
             raise ValueError(f"substract_s must be greater than 0.")
         if not self.is_can_analyse(substract_s):
-            raise ValueError(f"Can not substract. Value substract_s must be lower or equal than bank_seconds.")
+            raise ValueError(
+                f"Can not substract. Value substract_s must be lower or equal than bank_seconds."
+            )
         self.bank_seconds -= substract_s
-    
-
 
 
 class JobBase(SQLModel):
@@ -96,16 +116,16 @@ class Job(JobBase, table=True):
             Job.createdAt < self.createdAt, Job.endedAt == None, Job.startedAt != None
         )
         return session.exec(statement).one()
-    
+
     def is_started(self):
         return bool(self.startedAt)
-    
+
     def is_processing(self):
         return bool(self.startedAt) and not bool(self.endedAt)
-    
+
     def is_ended(self):
         return bool(self.endedAt)
-    
+
     def is_ok(self):
         return self.status == task_states.SUCCESS if self.is_ended() else True
 
@@ -116,8 +136,6 @@ class TaskBase(SQLModel):
     user_id: UUID4 = Field(foreign_key="user.id")
     account_id: UUID4 = Field(foreign_key="service_account.id")
     job_id: UUID4 | None = Field(default=None)
-
-
 
 
 class Task(TaskBase, table=True):
@@ -132,11 +150,11 @@ class Task(TaskBase, table=True):
 
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
 
-
     def create(session: Session, task_init: TaskBase, job_init: JobBase):
         statement = select(Job).where(
-            Job.filehash == job_init.filehash, # same hash
-            Job.model_quality >= WhisperModels.get_params(job_init.model) # better or like target model
+            Job.filehash == job_init.filehash,  # same hash
+            Job.model_quality
+            >= WhisperModels.get_params(job_init.model),  # better or like target model
         )
         exist_jobs = session.exec(statement).all()
         # Sorting by desc model quality
@@ -149,18 +167,19 @@ class Task(TaskBase, table=True):
         # Job at the lowest position in the queue
         best_inqueue_job = min(inqueue_jobs, key=lambda j: j.createdAt, default=None)
         # Job whith better model quality
-        best_inprocess_job = max(inprocess_jobs, key=lambda j: j.model_quality, default=None)
+        best_inprocess_job = max(
+            inprocess_jobs, key=lambda j: j.model_quality, default=None
+        )
         # Job whith better model quality
         best_ready_job = max(ready_jobs, key=lambda j: j.model_quality, default=None)
 
         job = None
-        if best_ready_job: 
+        if best_ready_job:
             job = best_ready_job
-        elif best_inprocess_job: 
+        elif best_inprocess_job:
             job = best_inprocess_job
-        elif best_inqueue_job: 
+        elif best_inqueue_job:
             job = best_inqueue_job
-        
 
         task = Task.from_orm(task_init)
 
@@ -169,10 +188,10 @@ class Task(TaskBase, table=True):
                 audio_duration=job_init.audio_duration,
                 filehash=job_init.filehash,
                 model=job_init.model,
-                model_quality=WhisperModels.get_params(job_init.model)
+                model_quality=WhisperModels.get_params(job_init.model),
             )
             session.add(job)
-        
+
         task.job_id = job.id
         session.add(task)
 
@@ -182,8 +201,8 @@ class Task(TaskBase, table=True):
 class PostBase(SQLModel):
     type: str = Field(default="post")
     status: str = Field(default="visible")
-    title: str|None = Field(default=None)
-    content: str|None = Field(default=None)
+    title: str | None = Field(default=None)
+    content: str | None = Field(default=None)
 
     user_id: UUID4 = Field(foreign_key="user.id")
     task_id: UUID4 = Field(foreign_key="task.id")
@@ -203,16 +222,19 @@ class Post(PostBase, table=True):
 
     def create(session: Session, post_init: PostBase):
         task = session.get(Task, post_init.task_id)
-        if task is None: raise ValueError(f"Task '{post_init.task_id}' not found!")
+        if task is None:
+            raise ValueError(f"Task '{post_init.task_id}' not found!")
         job = task.job
-        if not job.is_ended(): raise ValueError(f"Job '{job.id}' not ended!")
-        if not job.is_ok(): raise ValueError(f"Job '{job.id}' ended with error, can not create post!")
+        if not job.is_ended():
+            raise ValueError(f"Job '{job.id}' not ended!")
+        if not job.is_ok():
+            raise ValueError(f"Job '{job.id}' ended with error, can not create post!")
 
         post = Post(
-            title=short_uuid(task.id),
+            title=uuid_short(task.id),
             content=result_stringify(TranscribeResult(**orjson.loads(job.result))),
             user_id=task.user_id,
-            task_id=task.id
+            task_id=task.id,
         )
         session.add(post)
         return post

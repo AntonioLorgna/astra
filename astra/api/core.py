@@ -76,7 +76,7 @@ async def add_task(task_init: models.TaskBase):
     }
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            config.SUPERVIZOR_ADDRESS + '/task',
+            config.SUPERVIZOR_URL + '/task',
             data=payload,
             headers=headers) as response:
             

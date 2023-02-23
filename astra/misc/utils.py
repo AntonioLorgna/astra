@@ -3,6 +3,8 @@ from io import BytesIO
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
+
+from pydantic import UUID4
 from astra.core import schema
 import logging
 import json
@@ -139,6 +141,7 @@ class HashIO:
 
     def update(self, buffer: bytes):
         self._hash.update(buffer)
+        return self
     
     def digest(self):
         return self._hash.digest()
@@ -155,5 +158,20 @@ def result_stringify(result: schema.TranscribeResult, spliter: str="\n"):
     return spliter.join([seg.text for seg in result.segments])
 
 
-def short_uuid(id: str|UUID4, lenght: int = 8):
+def uuid_short(id: str|UUID4, lenght: int = 8):
     return str(id).split('-')[0][:lenght]
+
+def uuid_tag(id: str|UUID4):
+    return f"#T{uuid_short(id)}"
+
+
+def get_ngrok_hostname():
+    import requests
+
+    try:
+        response = requests.get("http://localhost:4040/api/tunnels", timeout=3)
+        if not response.ok: return None
+   
+        return response.json()['tunnels'][0]['public_url']
+    except KeyError or ConnectionError:
+        return None
