@@ -74,7 +74,7 @@ class User(UserBase, table=True):
             service_id=tg_id,
             service_name='telegram'
         )
-        return User.get_from_account(account_init)
+        return User.get_from_account(session, account_init)
 
     def is_can_analyse(self, audio_duration_s: int):
         if audio_duration_s < 0:
@@ -174,6 +174,8 @@ class Task(TaskBase, table=True):
         best_ready_job = max(ready_jobs, key=lambda j: j.model_quality, default=None)
 
         job = None
+        is_new_job = False
+
         if best_ready_job:
             job = best_ready_job
         elif best_inprocess_job:
@@ -181,7 +183,6 @@ class Task(TaskBase, table=True):
         elif best_inqueue_job:
             job = best_inqueue_job
 
-        task = Task.from_orm(task_init)
 
         if not job:
             job = Job(
@@ -191,11 +192,18 @@ class Task(TaskBase, table=True):
                 model_quality=WhisperModels.get_params(job_init.model),
             )
             session.add(job)
+            is_new_job = True
 
-        task.job_id = job.id
+        task = Task(
+            status_webhook=task_init.status_webhook,
+            file_webhook=task_init.file_webhook,
+            user_id=task_init.user_id,
+            account_id=task_init.account_id,
+            job_id=job.id
+        )
         session.add(task)
 
-        return (task, job)
+        return (task, job, is_new_job)
 
 
 class PostBase(SQLModel):

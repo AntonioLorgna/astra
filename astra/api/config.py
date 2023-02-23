@@ -3,7 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv("api.env")
-from astra.misc.utils import get_ngrok_hostname, ngr
+from astra.misc.utils import get_ngrok_hostname
 
 
 SELF_URL: str = environ.get("SELF_URL")

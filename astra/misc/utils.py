@@ -122,11 +122,13 @@ def show_execute_path():
     return str(p.resolve(True))
 
 
-def devport_init():
+def devport_init(wait_for_connection=False):
     if os.environ.get("DEV_PORT") is not None:
         port = int(os.environ.get("DEV_PORT"))
         import debugpy
         debugpy.listen(("0.0.0.0", port))
+        if wait_for_connection:
+            debugpy.wait_for_client()
 
 def hash(data: bytes):
     return hashlib.sha256(data).digest()

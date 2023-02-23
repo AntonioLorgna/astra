@@ -1,6 +1,5 @@
 from logging import getLogger
 from astra.core import models
-from astra.core import schema
 import requests
 
 from astra.core.schema import TaskInfo

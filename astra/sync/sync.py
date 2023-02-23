@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv('app.env')
-from sys import stdout
 import os
 import logging
 from astra.misc.utils import logging_setup, devport_init

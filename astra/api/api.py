@@ -14,11 +14,10 @@ from astra.api import core
 from astra.api.bot import (
     start_bot,
     stop_bot,
-    get_bot_wh_path,
     set_bot_webhook,
     process_wh_update,
 )
-from astra.api.utils import short_uuid
+from astra.api.utils import short_uuid, get_bot_wh_url, get_bot_wh_path 
 from astra.core.schema import task_states
 from astra.misc.utils import result_stringify
 import orjson
@@ -50,6 +49,7 @@ async def on_shutdown():
 
 
 app.post(get_bot_wh_path())(process_wh_update)
+
 
 @app.post("/status")
 async def process_task_status(task_info: schema.TaskInfo):

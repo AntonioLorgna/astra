@@ -3,9 +3,8 @@ import uuid
 from aiogram import Dispatcher
 from aiogram.types import Message
 from sqlmodel import Session
-from astra.core import models
 from astra.api import config, core
-from astra.core import db
+from astra.core import db, models, schema
 from astra.api.utils import download_tg_file, short_uuid
 
 from astra.misc.utils import HashIO
@@ -30,17 +29,19 @@ async def process_audio(msg: Message):
         user, account = models.User.get_from_account_tg(session, tg_id)
         if not (account or user):
             user, account = models.User.create_from_tg(
-                session, tg_id, session, 1000
+                session, tg_id, 0, 1000
             )
+            session.commit()
 
-        task_init = models.TaskBase(
-            filehash=hash,
-            audio_duration=downloadable.duration,
-            model=config.USE_MODEL,
+        task_init = schema.TaskInit(
             status_webhook=build_status_wh(),
             file_webhook=build_file_wh(),
             user_id=user.id,
             account_id=account.id,
+
+            audio_duration=downloadable.duration,
+            filehash=hash,
+            model=config.USE_MODEL
         )
     info = await core.add_task(task_init)
     if info is None:

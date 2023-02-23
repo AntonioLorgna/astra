@@ -27,8 +27,8 @@ if os.environ.get("DEV_PORT") is not None:
     # debugpy.wait_for_client()
 
 
-from astra.core import models
+from astra.core import db, models
 db.create_db_and_tables()
 from astra.supervizor import api
 app = api.app
-from astra.core import celery, db
+from astra.core import celery

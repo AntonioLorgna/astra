@@ -12,11 +12,11 @@ import aiohttp.typedefs as aiohttp_typedefs
 from astra.misc.utils import result_stringify
 logger = getLogger(__name__)
 
-from astra.core.schema import TaskInfo
+from astra.core.schema import TaskInfo, TaskInit
 aiohttp_typedefs.DEFAULT_JSON_ENCODER = orjson.dumps
 aiohttp_typedefs.DEFAULT_JSON_DECODER = orjson.loads
 
-async def add_task(task_init: models.TaskBase):
+async def add_task(task_init: TaskInit):
     payload = task_init.json()
     headers = {
         'Content-type': 'application/json'
