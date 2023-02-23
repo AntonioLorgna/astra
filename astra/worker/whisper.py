@@ -39,9 +39,7 @@ class Whisper(metaclass=utils.Singleton):
         self, devices: List[utils.DeviceInfo], limit_loaded_models: int = 1
     ) -> None:
         super().__init__()
-        env_av_model_names = set(
-            config.WHISPER_AVALIABLE_MODELS.split(",")
-        )
+        env_av_model_names = set(config.WHISPER_AVALIABLE_MODELS.split(","))
         avaliable_model_names = set(_MODELS.keys()).intersection(env_av_model_names)
         avaliable_models = set(WhisperModels.list_models()).intersection(
             avaliable_model_names
@@ -58,7 +56,6 @@ class Whisper(metaclass=utils.Singleton):
         self.limit_loaded_models = limit_loaded_models
 
     def transcribe(self, file: Path, model_name: str, datetime_base: datetime = None):
-
         model = self._get_model(model_name=model_name)
         result = model.transcribe(str(file.resolve()))
 
@@ -90,7 +87,8 @@ class Whisper(metaclass=utils.Singleton):
             self._loaded_models[model_name] = model_ml
             self._loaded_models = OrderedDict(
                 sorted(
-                    self._loaded_models.items(), key=lambda m: WhisperModels.mem_usage(m[0])
+                    self._loaded_models.items(),
+                    key=lambda m: WhisperModels.mem_usage(m[0]),
                 )
             )
         except Exception as e:
