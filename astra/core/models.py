@@ -56,17 +56,23 @@ class User(UserBase, table=True):
         if data is None: return (None, None)
         return data
 
+    def is_can_analyse(self, audio_duration_s: int):
+        if audio_duration_s < 0:
+            raise ValueError(f"audio_duration_s must be greater than 0.")
+        return self.bank_seconds >= audio_duration_s
+    
     def substract_seconds(self, substract_s: int):
         if substract_s < 0:
             raise ValueError(f"substract_s must be greater than 0.")
-        
+        if not self.is_can_analyse(substract_s):
+            raise ValueError(f"Can not substract. Value substract_s must be lower or equal than bank_seconds.")
         self.bank_seconds -= substract_s
     
 
 
 
 class JobBase(SQLModel):
-    audio_duration: float = Field(index=False)
+    audio_duration: float = Field()
     filehash: str = Field(index=True)
     model: str = Field(index=True)
 
