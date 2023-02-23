@@ -9,11 +9,10 @@ from astra.core.schema import task_states
 from astra.sync import webhooks
 from sqlmodel import Session
 from logging import getLogger
-from astra.misc.utils import logging_setup
 import asyncio, inspect
 
 logger = getLogger(__name__)
-logging_setup(logger)
+
 
 class AsyncReceiver(EventReceiver):
     def process(self, type, event):
@@ -31,44 +30,35 @@ class AsyncReceiver(EventReceiver):
 
 def _update_task(job_id: str, set_status: str, set_result=None):
     with Session(db.engine) as session:
-        db_job = session.get(models.Job, job_id)
-        if db_job is None:
-            logger.error(f"Job has id, but not exist in DB! ({job_id})")
-            return
-            # raise Exception(f"Task has id, but not exist in DB! ({uuid})")
+        job = session.get(models.Job, job_id)
+        if job is None:
+            raise Exception(f"Job has id, but not exist in DB! ({job_id})")
 
-        session.begin_nested()
-        session.execute('LOCK TABLE "job" IN ACCESS EXCLUSIVE MODE;')
-        db_job.status = set_status
+        job.status = set_status
 
         if set_status == task_states.STARTED:
-            db_job.startedAt = datetime.now()
+            job.startedAt = datetime.now()
 
         if set_result is not None:
-            db_job.endedAt = datetime.now()
-            db_job.result = set_result
-        session.commit()
+            job.endedAt = datetime.now()
+            job.result = set_result
         session.commit()
 
-        webhooks.task_status(
-            db_job, 
-            status=set_status, 
-            result=set_result, 
-            ok=db_job.status == schema.task_states.SUCCESS if db_job.endedAt else True)
+        webhooks.task_status(job, status=set_status, result=set_result, ok=job.is_ok())
 
-        logger.info(f"Job '{job_id}' now has status '{db_job.status}'")
+        logger.info(f"Job '{job_id}' now has status '{job.status}'")
 
 
 def task_event_process_generate(status: str):
     def task_event_process(event):
         r = AsyncResult(id=event["uuid"])
+        if not asyncio.iscoroutinefunction(_update_task):
+            _update_task(event["uuid"], status, r.result if r.ready() else None)
+            return
+
         loop = asyncio.get_event_loop()
-        coro = None
-        if r.ready():
-            coro = _update_task(event["uuid"], status, r.result)
-        else:
-            coro = _update_task(event["uuid"], status)
-        # loop.create_task(coro)
+        coro = _update_task(event["uuid"], status, r.result if r.ready() else None)
+        loop.create_task(coro)
 
     return task_event_process
 

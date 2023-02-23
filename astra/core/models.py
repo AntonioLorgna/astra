@@ -8,7 +8,7 @@ from astra.core.schema import TranscribeResult, task_states
 from sqlalchemy import func
 from astra.misc.utils import result_stringify, uuid_short
 
-from astra.static.whisper_models import WhisperModels
+from astra.core.whisper_models import WhisperModels
 
 
 class ServiceAccountBase(SQLModel):

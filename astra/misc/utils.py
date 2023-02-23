@@ -63,7 +63,7 @@ def get_devices(exclude_cpu=False):
 def match_device_models(
     devices: List[DeviceInfo], models: List[str], exclude_nomatch=True
 ) -> Dict[str, DeviceInfo]:
-    from astra.static.whisper_models import WhisperModels
+    from astra.core.whisper_models import WhisperModels
 
     devices = devices.copy()
     devices.sort(key=lambda d: d.memory)

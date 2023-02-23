@@ -8,7 +8,7 @@ from uuid import uuid4
 from sqlmodel import Session, select
 from astra.core import celery, db
 from astra.core.schema import TaskInfo, TaskInit, task_states
-from astra.static.whisper_models import WhisperModels
+from astra.core.whisper_models import WhisperModels
 from astra.core import models
 import os
 from logging import getLogger

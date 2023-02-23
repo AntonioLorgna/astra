@@ -8,7 +8,7 @@ from whisper import _download, _MODELS
 from datetime import timedelta, datetime
 from pathlib import Path
 from astra.core.schema import Segment, TranscribeResult
-from astra.static.whisper_models import WhisperModels
+from astra.core.whisper_models import WhisperModels
 import re, itertools, os, calendar, logging, torch
 import astra.misc.utils as utils
 
