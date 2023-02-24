@@ -45,7 +45,7 @@ setup:
 .PHONY: start-app-supervizor
 start-app-supervizor: 
 	exec > >(trap "" INT TERM; sed 's/^/SUPERV: /') &&\
-	source ./venv/bin/activate && DEV_PORT=7010 uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000 --workers 1
+	source ./venv/bin/activate && DEV_PORT=7010 uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-dir ./astra/supervizor
 
 .PHONY: start-app-sync
 start-app-sync: 
@@ -65,7 +65,7 @@ start-app-ngrok:
 .PHONY: start-app-api
 start-app-api: 
 	exec > >(trap "" INT TERM; sed 's/^/API: /') &&\
-	source ./venv/bin/activate && DEV_PORT=7040 uvicorn astra.api:app --host 0.0.0.0 --port 8080 --workers 1
+	source ./venv/bin/activate && DEV_PORT=7040 uvicorn astra.api:app --host 0.0.0.0 --port 8080 --workers 1 --reload --reload-dir ./astra/api
 
 .PHONY: start-app-flower
 start-app-flower: 
