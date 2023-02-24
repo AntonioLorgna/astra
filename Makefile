@@ -26,6 +26,11 @@ setup-frontend:
 	cd frontend && \
 	npm install
 
+.PHONY: build-frontend
+build-frontend: 
+	cd frontend && \
+	npm run build
+
 .PHONY: setup-app
 setup-app: 
 	sudo echo ""

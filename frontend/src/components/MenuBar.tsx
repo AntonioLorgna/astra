@@ -25,7 +25,7 @@ const MenuBar = ({ editor }: { editor: Editor }) => {
             >
                 paragraph
             </button>
-            <button
+            {/* <button
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
                 className={buttonClasses + (editor.isActive('codeBlock') ? '' : 'opacity-50')}
             >
@@ -41,7 +41,7 @@ const MenuBar = ({ editor }: { editor: Editor }) => {
                 className={buttonClasses}
             >
                 horizontal rule
-            </button>
+            </button> */}
             <button
                 onClick={() => editor.chain().focus().undo().run()}
                 disabled={

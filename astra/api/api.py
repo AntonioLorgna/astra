@@ -1,7 +1,9 @@
 from datetime import timedelta
+from pathlib import Path
 from aiogram import Bot
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 from astra.api import config
 from astra.core import db, models, schema
@@ -24,6 +26,7 @@ devport_init()
 app = FastAPI()
 start_bot()
 
+app.mount("/", StaticFiles(directory='./frontend/dist', html=True), name="static")
 
 @app.get("/api/test")
 def test_helloworld():
@@ -45,7 +48,7 @@ async def on_shutdown():
 app.post(get_bot_wh_path())(process_wh_update)
 
 
-@app.post("/status")
+@app.post("/api/status")
 async def process_task_status(task_info: schema.TaskInfo):
     bot = Bot.get_current()
 
@@ -83,7 +86,7 @@ async def process_task_status(task_info: schema.TaskInfo):
         await bot.send_message(user_id, result_stringify(result, " "))
 
 
-@app.get("/file")
+@app.get("/api/file")
 async def get_file(job_id: str = Body(embed=True)):
     with Session(db.engine) as session:
         job = session.get(models.Job, job_id)
