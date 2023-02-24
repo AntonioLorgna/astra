@@ -42,4 +42,13 @@ DB_URL = environ.get("DB_URL")
 if DB_URL is None:
     raise Exception("DB_URL is empty!")
 
-USE_MODEL = environ.get("USE_MODEL", "small")
+if environ.get("TG_ADMIN_ID_LIST") is None:
+    raise Exception("TG_ADMIN_ID_LIST is empty!")
+TG_ADMIN_ID_LIST = environ.get("TG_ADMIN_ID_LIST").split(',')
+
+
+USE_MODEL = environ.get("USE_MODEL", "tiny")
+
+if environ.get("START_USER_BANK") is None:
+    raise Exception("START_USER_BANK is empty!")
+START_USER_BANK = int(environ.get("START_USER_BANK"))

@@ -5,7 +5,11 @@ from astra.api import config, core
 from astra.core import db, models, schema
 from astra.api.utils import download_tg_file, short_uuid
 from astra.api.utils import build_file_wh, build_status_wh
+from astra.api.bot import templates
 
+
+async def start(msg: Message):
+    await msg.answer(templates.start_message())
 
 async def process_audio(msg: Message):
     if not any([msg.voice, msg.audio]):
@@ -46,5 +50,5 @@ async def process_audio(msg: Message):
 
 def register_other_handlers(dp: Dispatcher) -> None:
     # todo: register all other handlers
-    dp.register_message_handler(hello, commands=["hello"])
+    dp.register_message_handler(start, commands=["start"])
     dp.register_message_handler(process_audio, content_types=["voice", "audio"])
