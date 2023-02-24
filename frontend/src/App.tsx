@@ -1,11 +1,23 @@
 import { useState } from "react";
-import Tiptap from "./components/TipTapEditor";
+import { MainButton, useShowPopup } from '@vkruglikov/react-telegram-web-app';
+
 
 
 export default function App() {
+  const showPopup = useShowPopup();
   
 
   return (
-    <Tiptap/>
+    <>
+      Some page content...
+      <MainButton
+        text="SHOW POPUP"
+        onClick={() => {
+          showPopup({
+            message: "Hello, I'am showPopup handle",
+          });
+        }}
+      />
+    </>
   );
 }

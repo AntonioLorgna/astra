@@ -2,6 +2,7 @@ from aiogram import Dispatcher
 from aiogram.types import Message
 from sqlmodel import Session
 from astra.api import config, core
+from astra.api.bot.keyboards.inline import app_button
 from astra.core import db, models, schema
 from astra.api.utils import download_tg_file, short_uuid
 from astra.api.utils import build_file_wh, build_status_wh
@@ -9,7 +10,9 @@ from astra.api.bot import templates
 
 
 async def start(msg: Message):
-    await msg.answer(templates.start_message())
+    # await msg.answer(templates.start_message())
+    await msg.answer("test", reply_markup=app_button("app"))
+
 
 async def process_audio(msg: Message):
     if not any([msg.voice, msg.audio]):

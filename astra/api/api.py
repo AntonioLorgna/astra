@@ -26,7 +26,6 @@ devport_init()
 app = FastAPI()
 start_bot()
 
-app.mount("/", StaticFiles(directory='./frontend/dist', html=True), name="static")
 
 @app.get("/api/test")
 def test_helloworld():
@@ -46,6 +45,7 @@ async def on_shutdown():
 
 
 app.post(get_bot_wh_path())(process_wh_update)
+logger.info(get_bot_wh_path())
 
 
 @app.post("/api/status")
@@ -96,3 +96,6 @@ async def get_file(job_id: str = Body(embed=True)):
         if not filepath.is_file():
             raise HTTPException(410, "File removed.")
         return FileResponse(filepath)
+
+
+app.mount("/", StaticFiles(directory='./frontend/dist', html=True), name="static")
