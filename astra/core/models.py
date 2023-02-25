@@ -6,7 +6,7 @@ from pydantic import UUID4, HttpUrl
 from datetime import datetime
 from astra.core.schema import TranscribeResult, task_states
 from sqlalchemy import func
-from astra.misc.utils import result_stringify, uuid_short
+from astra.misc.utils import result_stringify, result_to_html, uuid_short
 
 from astra.core.whisper_models import WhisperModels
 
@@ -199,6 +199,18 @@ class Task(TaskBase, table=True):
         session.add(task)
 
         return (task, job, is_new_job)
+    
+    def get(session: Session, task_init: TaskBase, job_init: JobBase):
+        statement = select(Task, Job).where(
+            Job.filehash == job_init.filehash,
+            Job.audio_duration == job_init.audio_duration,
+            Job.model == job_init.model,
+            Task.job_id == Job.id,
+            Task.user_id == task_init.user_id
+        )
+        res = session.exec(statement).first()
+        if res is None: return (None, None)
+        return res
 
 
 class PostBase(SQLModel):
@@ -235,7 +247,23 @@ class Post(PostBase, table=True):
 
         post = Post(
             title=uuid_short(task.id),
-            content=result_stringify(TranscribeResult(**orjson.loads(job.result))),
+            content=result_to_html(TranscribeResult(**orjson.loads(job.result))),
+            user_id=task.user_id,
+            task_id=task.id,
+        )
+        session.add(post)
+        return post
+
+    def create_from(session: Session, task: Task):
+        job = task.job
+        if not job.is_ended():
+            raise ValueError(f"Job '{job.id}' not ended!")
+        if not job.is_ok():
+            raise ValueError(f"Job '{job.id}' ended with error, can not create post!")
+
+        post = Post(
+            title=uuid_short(task.id),
+            content=result_to_html(TranscribeResult(**orjson.loads(job.result))),
             user_id=task.user_id,
             task_id=task.id,
         )

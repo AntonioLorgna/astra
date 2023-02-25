@@ -166,6 +166,21 @@ class HashIO:
 def result_stringify(result: schema.TranscribeResult, spliter: str = "\n"):
     return spliter.join([seg.text for seg in result.segments])
 
+def result_to_html(result: schema.TranscribeResult):
+    '''
+    Example:\n
+    <p data-timeline="0.00.00">Lorem ipsum dolor sit amet, clearly consectetur adipiscing elit.</p>\n
+    <p data-timeline="0.00.00">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>\n
+    <p data-timeline="0.00.00">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    '''
+    p_list = [f"<p data-timeline=\"{seg.start}\">{seg.text}</p>" for seg in result.segments]
+
+    if len(result.segments) > 0:
+        last_seg = result.segments[-1]
+        p_list.append(f"<p data-timeline=\"{last_seg.end}\"></p>")
+
+    return "\n".join(p_list)
+
 
 def uuid_short(id: str | UUID4, lenght: int = 8):
     return str(id).split("-")[0][:lenght]

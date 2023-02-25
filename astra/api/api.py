@@ -1,11 +1,13 @@
 from datetime import timedelta
 from pathlib import Path
-from aiogram import Bot
+from aiogram import Bot, Dispatcher
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 from astra.api import config
+from astra.api.bot.keyboards.inline import create_post, edit_post
+from astra.api.bot.states import CREATE_POST
 from astra.core import db, models, schema
 from astra.api.bot import (
     start_bot,
@@ -17,6 +19,7 @@ from astra.api.utils import short_uuid, get_bot_wh_path
 from astra.misc.utils import result_stringify, logging_setup, devport_init
 import logging
 import orjson
+from aiogram.dispatcher import FSMContext
 
 logger = logging.getLogger(__name__)
 logging_setup(logger)
@@ -49,7 +52,7 @@ logger.info(get_bot_wh_path())
 
 
 @app.post("/api/status")
-async def process_task_status(task_info: schema.TaskInfo):
+async def process_task_status(task_info: schema.TaskInfo, already_done=False):
     bot = Bot.get_current()
 
     with Session(db.engine) as session:
@@ -79,11 +82,34 @@ async def process_task_status(task_info: schema.TaskInfo):
             return
         result = schema.TranscribeResult(**orjson.loads(task_info.result))
         execution_time: timedelta = job.endedAt - job.createdAt
+
+        dp = Dispatcher.get_current()
+        # state: FSMContext = await dp.storage.get_state(user=user_id)
+        state = FSMContext(dp.storage, chat=user_id, user=user_id)
+        await state.set_state(CREATE_POST)
+        await state.set_data({"task_id":task.id})
+
+        if already_done:
+            post_exist = len(task.posts) > 0
+            reply_markup=create_post("Создать запись из результата")
+            if post_exist:
+                post = task.posts[-1]
+                reply_markup=edit_post("Изменить запись", post_id=post.id)
+
+            await bot.send_message(
+                user_id,
+                f"#T{short_uuid(task_info.id)} Анализ данной записи уже был произведён.",
+                reply_markup=reply_markup
+            )
+            return
+
         await bot.send_message(
             user_id,
             f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек.",
+            reply_markup=create_post("Создать запись из результата")
         )
-        await bot.send_message(user_id, result_stringify(result, " "))
+
+        
 
 
 @app.get("/api/file")

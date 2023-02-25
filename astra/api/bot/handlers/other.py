@@ -2,11 +2,17 @@ from aiogram import Dispatcher
 from aiogram.types import Message
 from sqlmodel import Session
 from astra.api import config, core
-from astra.api.bot.keyboards.inline import app_button
+from astra.api.bot.keyboards.inline import app_button, edit_post
+from astra.api.bot.states import CREATE_POST
 from astra.core import db, models, schema
 from astra.api.utils import download_tg_file, short_uuid
 from astra.api.utils import build_file_wh, build_status_wh
 from astra.api.bot import templates
+from aiogram.dispatcher import FSMContext
+from aiogram.types import Message, CallbackQuery
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 async def start(msg: Message):
@@ -46,12 +52,35 @@ async def process_audio(msg: Message):
         )
         return
     if info.result is not None:
-        await core.result_exist(info, msg.bot, tg_id)
+        from astra.api.api import process_task_status
+
+        await process_task_status(info, already_done=True)
+        # await core.result_exist(info, msg.bot, tg_id)
         return
     await msg.answer(f"#T{short_uuid(info.id)} Анализ запущен...")
+
+
+async def __create_post(query: CallbackQuery, state: FSMContext):
+    with Session(db.engine) as session:
+        data = await state.get_data()
+        logger.warn(data)
+        if data.get("task_id") is None:
+            await query.answer(f"Возникла ошибка при создании записи.")
+            return
+        task = session.get(models.Task, data.get("task_id"))
+        post = models.Post.create_from(session, task)
+        session.commit()
+
+        await query.answer(
+            f"Новая запись '{post.id}' добавлена."
+        )
+        await query.message.edit_reply_markup(edit_post("Изменить запись", post.id))
 
 
 def register_other_handlers(dp: Dispatcher) -> None:
     # todo: register all other handlers
     dp.register_message_handler(start, commands=["start"])
     dp.register_message_handler(process_audio, content_types=["voice", "audio"])
+    dp.register_callback_query_handler(
+        __create_post, lambda c: c.data == "create_post", state=CREATE_POST
+    )

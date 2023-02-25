@@ -26,9 +26,14 @@ async def add_task(task_init: TaskInit):
         account = session.get(models.ServiceAccount, task_init.account_id)
         if account is None:
             raise HTTPException(404, "ServiceAccount not found!")
+        
+        task, job = models.Task.get(session, task_init, task_init)
+        is_new_job = False
+        
+        if not (task or job):
+            task, job, is_new_job = models.Task.create(session, task_init, task_init)
+            session.commit()
 
-        task, job, is_new_job = models.Task.create(session, task_init, task_init)
-        session.commit()
         if is_new_job:
             celery.transcribe.apply_async(
                 args=(job.model, job.filehash, task.file_webhook),
