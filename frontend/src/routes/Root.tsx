@@ -1,10 +1,10 @@
 import { MainButton, useShowPopup, useThemeParams } from '@vkruglikov/react-telegram-web-app';
-import axios from 'axios';
-import React, { useEffect, useState } from 'react'
+import ky from 'ky';
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import TimelineParagraph from '../components/extension/TimelineParagraph';
 import TipTapEditor from '../components/TipTapEditor';
-import { EditorContent, Extensions, useEditor } from '@tiptap/react'
+import { Extensions, useEditor } from '@tiptap/react'
 import Document from '@tiptap/extension-document'
 import Text from '@tiptap/extension-text'
 import History from '@tiptap/extension-history'
@@ -56,9 +56,9 @@ const Root = () => {
   })
 
   useEffect(() => {
-    axios.get(`/api/post/${post_id}`)
-      .then(function (response) {
-        setPost(response.data);
+    ky.get(`/api/post/${post_id}`).json<Post>()
+      .then(function (post) {
+        setPost(post);
       })
       .catch(function (error) {
         console.log(error.response?.data?.detail || error.response);
@@ -72,9 +72,9 @@ const Root = () => {
   }, [post?.content]);
 
   const savePost = () => {
-    axios.post(`/api/post/${post_id}`, {content: editor?.getHTML()})
-      .then(function (response) {
-        setPost(response.data);
+    ky.post(`/api/post/${post_id}`, {json: {content: editor?.getHTML()}}).json<Post>()
+      .then(function (post) {
+        setPost(post);
         showPopup({message: "Сохранено"});
       })
       .catch(function (error) {
