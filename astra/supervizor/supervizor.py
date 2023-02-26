@@ -16,7 +16,6 @@ devport_init()
 
 from astra.core import db
 
-db.create_db_and_tables()
 from astra.supervizor import api
 
 app = api.app
