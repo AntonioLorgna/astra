@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+from uuid import UUID
 from aiogram import Bot, Dispatcher
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -122,6 +123,34 @@ async def get_file(job_id: str = Body(embed=True)):
         if not filepath.is_file():
             raise HTTPException(410, "File removed.")
         return FileResponse(filepath)
+
+
+@app.get("/api/post/{post_id}")
+async def get_post(post_id: str):
+    try:
+        UUID(post_id)
+    except ValueError as e:
+        raise HTTPException(422, f"Badly formed UUID ({post_id})")
+    with Session(db.engine) as session:
+        post = session.get(models.Post, post_id)
+        if post is None:
+            raise HTTPException(404, f"Post not found ({post_id})")
+        return post
+    
+@app.post("/api/post/{post_id}")
+async def set_post_content(post_id: str, content: str = Body(embed=True)):
+    try:
+        UUID(post_id)
+    except ValueError as e:
+        raise HTTPException(422, f"Badly formed UUID ({post_id})")
+    with Session(db.engine) as session:
+        post = session.get(models.Post, post_id)
+        if post is None:
+            raise HTTPException(404, f"Post not found ({post_id})")
+        post.set_content(content)
+        session.commit()
+        return post
+
 
 
 app.mount("/", StaticFiles(directory='./frontend/dist', html=True), name="static")
