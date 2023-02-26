@@ -7,7 +7,7 @@ export default (props:Props) => {
   const {editor} = props
   return (
     <div>
-      <MenuBar editor={editor} />
+      {/* <MenuBar editor={editor} /> */}
       <EditorContent editor={editor} spellCheck={true} />
     </div>
   )

@@ -74,7 +74,7 @@ async def __create_post(query: CallbackQuery, state: FSMContext):
         await query.answer(
             f"Новая запись '{post.id}' добавлена."
         )
-        await query.message.edit_reply_markup(edit_post(post.id))
+        await query.message.answer(f"Новая запись '{post.id}' добавлена.", edit_post(post.id))
 
 
 def register_other_handlers(dp: Dispatcher) -> None:

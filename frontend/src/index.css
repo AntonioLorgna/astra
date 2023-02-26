@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.ProseMirror p {
+    color: var(--tg-theme-text-color);
+}
+
+body {
+    background-color: var(--tg-theme-bg-color);
+}

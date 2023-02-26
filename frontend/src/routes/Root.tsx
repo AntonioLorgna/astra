@@ -75,6 +75,7 @@ const Root = () => {
     axios.post(`/api/post/${post_id}`, {content: editor?.getHTML()})
       .then(function (response) {
         setPost(response.data);
+        showPopup({message: "Сохранено"});
       })
       .catch(function (error) {
         console.log(error.response?.data?.detail || error.response );
