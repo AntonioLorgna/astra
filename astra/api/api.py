@@ -92,10 +92,10 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
 
         if already_done:
             post_exist = len(task.posts) > 0
-            reply_markup=create_post("Создать запись из результата")
+            reply_markup=create_post()
             if post_exist:
                 post = task.posts[-1]
-                reply_markup=edit_post("Изменить запись", post_id=post.id)
+                reply_markup=edit_post(post_id=post.id)
 
             await bot.send_message(
                 user_id,
@@ -107,7 +107,7 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
         await bot.send_message(
             user_id,
             f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек.",
-            reply_markup=create_post("Создать запись из результата")
+            reply_markup=create_post()
         )
 
         

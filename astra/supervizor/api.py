@@ -66,7 +66,7 @@ async def get_task(id: UUID4):
 
 @app.on_event("startup")
 async def startup():
-    pass
+    db.create_db_and_tables()
 
 
 @app.post("/test")

@@ -175,7 +175,9 @@ def result_to_html(result: schema.TranscribeResult):
     <p data-timeline="0.00.00">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
     '''
     def sec_f(seconds):
-        return str(timedelta(seconds=seconds))
+        td = timedelta(seconds=round(seconds))
+
+        return str(td)
     
     p_list = [f"<p data-timeline=\"{sec_f(seg.start)}\">{seg.text}</p>" for seg in result.segments]
 

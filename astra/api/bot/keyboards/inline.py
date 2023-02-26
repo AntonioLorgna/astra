@@ -14,15 +14,15 @@ def app_button(text: str):
     kb.add(InlineKeyboardButton(text=text, web_app=web_app))
     return kb
 
-def create_post(text: str, kb: InlineKeyboardMarkup = None):
+def create_post(kb: InlineKeyboardMarkup = None):
     if kb is None:
         kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text=text, callback_data="create_post"))
+    kb.add(InlineKeyboardButton(text="Создать стенограмму из результата", callback_data="create_post"))
     return kb
 
-def edit_post(text: str, post_id: str, kb: InlineKeyboardMarkup = None):
+def edit_post(post_id: str, kb: InlineKeyboardMarkup = None):
     if kb is None:
         kb = InlineKeyboardMarkup()
     web_app = WebAppInfo(url=f"{config.SELF_URL_EXTERNAL}/?post_id={post_id}")
-    kb.add(InlineKeyboardButton(text=text, web_app=web_app))
+    kb.add(InlineKeyboardButton(text="Изменить стенограмму", web_app=web_app))
     return kb
