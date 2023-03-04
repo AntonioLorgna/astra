@@ -2,7 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
 from aiogram import Bot, Dispatcher
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Header, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
@@ -22,6 +22,7 @@ from astra.misc.utils import result_stringify, logging_setup, devport_init
 import logging
 import orjson
 from aiogram.dispatcher import FSMContext
+from aiogram.utils import web_app
 
 logger = logging.getLogger(__name__)
 logging_setup(logger)
@@ -108,8 +109,8 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
 
         await bot.send_message(
             user_id,
-            f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек. \
-            ожидание составило {waiting_time.seconds} сек.",
+            f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек."
+            f"ожидание составило {waiting_time.seconds} сек.",
             reply_markup=create_post(),
         )
 
@@ -127,11 +128,15 @@ async def get_file(job_id: str = Body(embed=True)):
 
 
 @app.get("/api/post/{post_id}")
-async def get_post(post_id: str):
+async def get_post(post_id: str, initData: str = Header(default=None)):
+    is_web_app = web_app.check_webapp_signature(config.TG_TOKEN, initData)
+    if not is_web_app:
+        raise HTTPException(401, f"Use Telegram web app to open this page!")
     try:
         UUID(post_id)
     except ValueError as e:
         raise HTTPException(422, f"Badly formed UUID ({post_id})")
+    logger.warn(initData)
     with Session(db.engine) as session:
         post = session.get(models.Post, post_id)
         if post is None:
@@ -140,11 +145,15 @@ async def get_post(post_id: str):
 
 
 @app.post("/api/post/{post_id}")
-async def set_post_content(post_id: str, content: schema.TranscribeResult):
+async def set_post_content(post_id: str, content: schema.TranscribeResult, initData: str = Header(default=None)):
+    is_web_app = web_app.check_webapp_signature(config.TG_TOKEN, initData)
+    if not is_web_app:
+        raise HTTPException(401, f"Use Telegram web app to open this page!")
     try:
         UUID(post_id)
     except ValueError as e:
         raise HTTPException(422, f"Badly formed UUID ({post_id})")
+    logger.warn(initData)
     with Session(db.engine) as session:
         post = session.get(models.Post, post_id)
         if post is None:

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import TimelineParagraph from '../components/extension/TimelineParagraph';
 import TipTapEditor from '../components/TipTapEditor';
-import { Extensions, useEditor } from '@tiptap/react'
+import { Extensions, isString, useEditor } from '@tiptap/react'
 import Document from '@tiptap/extension-document'
 import Text from '@tiptap/extension-text'
 import History from '@tiptap/extension-history'
@@ -14,12 +14,17 @@ import {TranscribeResult, TranscribeResultAdapter} from '../structure/Transcribe
 import { Post } from '../structure/Post';
 import data from '../data/data.json'
 
+
 const Root = () => {
   const [colorScheme, themeParams] = useThemeParams();
   const showPopup = useShowPopup();
   const [searchParams, setSearchParams] = useSearchParams();
   const post_id = searchParams.get("post_id")
   const [post, setPost] = useState<Post>();
+  
+  const getInitData = ()=>{
+    return (window as any)?.Telegram?.WebApp?.initData as string | undefined
+  }
 
   const extensions: Extensions = [
     Document,
@@ -48,7 +53,7 @@ const Root = () => {
   })
 
   useEffect(() => {
-    ky.get(`/api/post/${post_id}`).json<Post>()
+    ky.get(`/api/post/${post_id}`, {headers: {initData: getInitData()}}).json<Post>()
       .then(function (post) {
         setPost(post);
       })
@@ -71,7 +76,7 @@ const Root = () => {
     const tr = TranscribeResultAdapter.jsonToTR(jsonContent);
     if (!tr) return;
     
-    ky.post(`/api/post/${post_id}`, {json: tr}).json<Post>()
+    ky.post(`/api/post/${post_id}`, {json: tr, headers: {initData: getInitData()}}).json<Post>()
       .then(function (post) {
         setPost(post);
         showPopup({message: "Сохранено"});
@@ -87,8 +92,8 @@ const Root = () => {
 
   return (
     <>
-      <a href={`/?post_id=${searchParams.get('post_id')}`}>link</a>
-      <pre>{JSON.stringify((window as any).Telegram, undefined, 2)}</pre>
+      {/* <a href={`/?post_id=${searchParams.get('post_id')}`}>link</a>
+      <pre>{JSON.stringify((window as any).Telegram.WebApp.initData, undefined, 2)}</pre> */}
       <TipTapEditor editor={editor!} />
       <MainButton
         text="Сохранить"
