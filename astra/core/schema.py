@@ -13,12 +13,41 @@ class Segment(BaseModel):
 
 
 class TranscribeResult(BaseModel):
-
     class Config:
         orm_mode = True
         allow_population_by_field_name = True
+
     segments: List[Segment]
     datetime_base: datetime
+
+    def to_txt(self, timestamp=False):
+        def secs_to_hhmmss(secs: float | int):
+            mm, ss = divmod(secs, 60)
+            hh, mm = divmod(mm, 60)
+            return f"{hh:0>2.0f}:{mm:0>2.0f}:{ss:0>2.0f}"
+
+        return "\n".join(
+            [
+                f"[{secs_to_hhmmss(seg.start)}-{secs_to_hhmmss(seg.end)}] {seg.text.strip()}"
+                if timestamp
+                else seg.text.strip()
+                for seg in self.segments
+            ]
+        )
+
+    def to_srt(self, strip=True):
+        def secs_to_hhmmss(secs: float | int):
+            mm, ss = divmod(secs, 60)
+            hh, mm = divmod(mm, 60)
+            return f"{hh:0>2.0f}:{mm:0>2.0f}:{ss:0>6.3f}".replace(".", ",")
+
+        srt_str = "\n".join(
+            f"{i}\n"
+            f"{secs_to_hhmmss(seg.start)} --> {secs_to_hhmmss(seg.end)}\n"
+            f"{seg.text.strip() if strip else seg.text}\n"
+            for i, seg in enumerate(self.segments, 1)
+        )
+        return srt_str
 
 
 class TaskInfo(BaseModel):
