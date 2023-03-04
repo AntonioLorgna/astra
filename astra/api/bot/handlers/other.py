@@ -11,6 +11,8 @@ from astra.api.bot import templates
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, CallbackQuery
 from logging import getLogger
+from aiogram.types import InputFile
+import io
 
 logger = getLogger(__name__)
 
@@ -63,7 +65,6 @@ async def process_audio(msg: Message):
 async def __create_post(query: CallbackQuery, state: FSMContext):
     with Session(db.engine) as session:
         data = await state.get_data()
-        logger.warn(data)
         if data.get("task_id") is None:
             await query.answer(f"Возникла ошибка при создании записи.")
             return
@@ -71,10 +72,39 @@ async def __create_post(query: CallbackQuery, state: FSMContext):
         post = models.Post.create_from(session, task)
         session.commit()
 
-        await query.answer(
-            f"Новая запись '{post.id}' добавлена."
+        await query.answer(f"Новая запись '{post.id}' добавлена.")
+        await query.message.answer(
+            f"Новая запись '{post.id}' добавлена.", reply_markup=edit_post(post.id)
         )
-        await query.message.answer(f"Новая запись '{post.id}' добавлена.", reply_markup=edit_post(post.id))
+
+
+async def __download_post_txt(query: CallbackQuery):
+    with Session(db.engine) as session:
+        try:
+            post_id = query.data.split(":")[-1]
+            post = session.get(models.Post, post_id)
+            buffer = InputFile(
+                io.BytesIO(post.content.to_txt().encode()),
+                filename=f"P{short_uuid(post_id)}.txt",
+            )
+            await query.message.answer_document(document=buffer)
+        except Exception as e:
+            await query.answer(f"Возникла ошибка при создании файла.")
+            logger.error(e)
+
+async def __download_post_srt(query: CallbackQuery):
+    with Session(db.engine) as session:
+        try:
+            post_id = query.data.split(":")[-1]
+            post = session.get(models.Post, post_id)
+            buffer = InputFile(
+                io.BytesIO(post.content.to_srt().encode()),
+                filename=f"P{short_uuid(post_id)}.srt",
+            )
+            await query.message.answer_document(document=buffer)
+        except Exception as e:
+            await query.answer(f"Возникла ошибка при создании файла.")
+            logger.error(e)
 
 
 def register_other_handlers(dp: Dispatcher) -> None:
@@ -83,4 +113,10 @@ def register_other_handlers(dp: Dispatcher) -> None:
     dp.register_message_handler(process_audio, content_types=["voice", "audio"])
     dp.register_callback_query_handler(
         __create_post, lambda c: c.data == "create_post", state=CREATE_POST
+    )
+    dp.register_callback_query_handler(
+        __download_post_txt, lambda c: c.data.startswith("txt:")
+    )
+    dp.register_callback_query_handler(
+        __download_post_srt, lambda c: c.data.startswith("srt:")
     )
