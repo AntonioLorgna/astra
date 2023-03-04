@@ -36,12 +36,14 @@ const Root = () => {
       ]
     }))
   }
-
   const editor = useEditor({
     extensions,
     content: "Загрузка...",
     onUpdate: ({ editor }) => {
       // console.log(editor.getJSON())
+
+      if (!editor) return;
+      // savePost(editor);
     },
   })
 
@@ -61,9 +63,9 @@ const Root = () => {
       if (!jsonContent || !jsonContent.content) return;
       editor.commands.setContent(jsonContent);
     }
-  }, [post?.content]);
+  }, [post]);
 
-  const savePost = () => {
+  const savePost = (editor: any) => {
     const jsonContent = editor?.getJSON();
     if (!jsonContent) return;
     const tr = TranscribeResultAdapter.jsonToTR(jsonContent);
@@ -85,11 +87,11 @@ const Root = () => {
 
   return (
     <>
-      <p>{searchParams}</p>
+      <a href={`/?post_id=${searchParams.get('post_id')}`}>link</a>
       <TipTapEditor editor={editor!} />
       <MainButton
         text="Сохранить"
-        onClick={savePost}
+        onClick={() => savePost(editor)}
       />
     </>
   )

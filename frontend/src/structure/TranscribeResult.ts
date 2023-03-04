@@ -7,7 +7,7 @@ export interface Segment {
 }
 export interface TranscribeResult {
     segments: Segment[]
-    datetime_base: Date
+    datetime_base: string
 }
 
 export class TranscribeResultAdapter {
@@ -77,9 +77,9 @@ export class TranscribeResultAdapter {
         return res;
     }
 
-    static jsonToTR(doc: JSONContent, datetime_base?: Date) {
+    static jsonToTR(doc: JSONContent, datetime_base?: string) {
         if (!datetime_base) {
-            datetime_base = new Date();
+            datetime_base = new Date().toISOString();
         }
 
         const res: TranscribeResult = {
@@ -87,9 +87,8 @@ export class TranscribeResultAdapter {
             segments: doc.content!
                 .filter((p) =>
                     p.attrs &&
-                    p.attrs["data-start"] &&
-                    p.attrs["data-end"] &&
-                    p.content?.at(-1)?.type == "text")
+                    Number(p.attrs["data-start"]) > 0 &&
+                    Number(p.attrs["data-end"]) > 0)
                 .map((p) => ({
                     start: Number(p.attrs!["data-start"]),
                     end: Number(p.attrs!["data-end"]),
