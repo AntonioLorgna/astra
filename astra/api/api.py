@@ -83,35 +83,35 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
                 )
             return
         result = schema.TranscribeResult(**orjson.loads(task_info.result))
-        execution_time: timedelta = job.endedAt - job.createdAt
+        execution_time: timedelta = job.endedAt - job.startedAt
+        waiting_time: timedelta = job.startedAt - job.createdAt
 
         dp = Dispatcher.get_current()
         # state: FSMContext = await dp.storage.get_state(user=user_id)
         state = FSMContext(dp.storage, chat=user_id, user=user_id)
         await state.set_state(CREATE_POST)
-        await state.set_data({"task_id":task.id})
+        await state.set_data({"task_id": task.id})
 
         if already_done:
             post_exist = len(task.posts) > 0
-            reply_markup=create_post()
+            reply_markup = create_post()
             if post_exist:
                 post = task.posts[-1]
-                reply_markup=edit_post(post_id=post.id)
+                reply_markup = edit_post(post_id=post.id)
 
             await bot.send_message(
                 user_id,
                 f"#T{short_uuid(task_info.id)} Анализ данной записи уже был произведён.",
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
             )
             return
 
         await bot.send_message(
             user_id,
-            f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек.",
-            reply_markup=create_post()
+            f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек. \
+            ожидание составило {waiting_time.seconds} сек.",
+            reply_markup=create_post(),
         )
-
-        
 
 
 @app.get("/api/file")
@@ -137,7 +137,8 @@ async def get_post(post_id: str):
         if post is None:
             raise HTTPException(404, f"Post not found ({post_id})")
         return post
-    
+
+
 @app.post("/api/post/{post_id}")
 async def set_post_content(post_id: str, content: schema.TranscribeResult):
     try:
@@ -153,5 +154,4 @@ async def set_post_content(post_id: str, content: schema.TranscribeResult):
         return post
 
 
-
-app.mount("/", StaticFiles(directory='./frontend/dist', html=True), name="static")
+app.mount("/", StaticFiles(directory="./frontend/dist", html=True), name="static")

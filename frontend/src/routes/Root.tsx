@@ -88,6 +88,7 @@ const Root = () => {
   return (
     <>
       <a href={`/?post_id=${searchParams.get('post_id')}`}>link</a>
+      <pre>{JSON.stringify((window as any).Telegram, undefined, 2)}</pre>
       <TipTapEditor editor={editor!} />
       <MainButton
         text="Сохранить"

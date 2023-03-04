@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
-    "build": "tsc && vite build --mode development",
+    "build": "tsc && vite build --mode development --watch",
     "preview": "vite preview"
   },
   "dependencies": {
