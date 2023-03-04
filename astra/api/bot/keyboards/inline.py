@@ -30,7 +30,7 @@ def edit_post(post_id: str, kb: InlineKeyboardMarkup = None):
     if kb is None:
         kb = InlineKeyboardMarkup()
     web_app = WebAppInfo(url=f"{config.SELF_URL_EXTERNAL}/?post_id={post_id}")
-    kb.add(InlineKeyboardButton(text="Изменить стенограмму", web_app=web_app))
+    kb.add(InlineKeyboardButton(text="Посмотреть/изменить", web_app=web_app))
     kb.row(
         InlineKeyboardButton(text="\u2193 TXT", callback_data=f"txt:{post_id}"),
         InlineKeyboardButton(text="\u2193 SRT", callback_data=f"srt:{post_id}"),
