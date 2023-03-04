@@ -10,19 +10,9 @@ import Text from '@tiptap/extension-text'
 import History from '@tiptap/extension-history'
 import { Highlighter } from '../components/extension/Highlighter';
 import { DatePlugin } from '../components/extension/plugins/DatePlugin';
-
-interface Post {
-  id: string
-  type: string
-  status: string
-  title: string
-  content: string
-  user_id: string
-  task_id: string
-
-  createdAt: Date
-  updatedAt: Date
-}
+import {TranscribeResult, TranscribeResultAdapter} from '../structure/TranscribeResult'
+import { Post } from '../structure/Post';
+import data from '../data/data.json'
 
 const Root = () => {
   const [colorScheme, themeParams] = useThemeParams();
@@ -51,7 +41,7 @@ const Root = () => {
     extensions,
     content: "Загрузка...",
     onUpdate: ({ editor }) => {
-      
+      // console.log(editor.getJSON())
     },
   })
 
@@ -67,12 +57,19 @@ const Root = () => {
 
   useEffect(() => {
     if (editor && post?.content) {
-      editor.commands.setContent(post.content);
+      const jsonContent = TranscribeResultAdapter.json(post.content);
+      if (!jsonContent || !jsonContent.content) return;
+      editor.commands.setContent(jsonContent);
     }
   }, [post?.content]);
 
   const savePost = () => {
-    ky.post(`/api/post/${post_id}`, {json: {content: editor?.getHTML()}}).json<Post>()
+    const jsonContent = editor?.getJSON();
+    if (!jsonContent) return;
+    const tr = TranscribeResultAdapter.jsonToTR(jsonContent);
+    if (!tr) return;
+    
+    ky.post(`/api/post/${post_id}`, {json: tr}).json<Post>()
       .then(function (post) {
         setPost(post);
         showPopup({message: "Сохранено"});
@@ -88,6 +85,7 @@ const Root = () => {
 
   return (
     <>
+      <p>{searchParams}</p>
       <TipTapEditor editor={editor!} />
       <MainButton
         text="Сохранить"

@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import Field
 from sqlmodel import Session
 from astra.api import config
 from astra.api.bot.keyboards.inline import create_post, edit_post
@@ -138,7 +139,7 @@ async def get_post(post_id: str):
         return post
     
 @app.post("/api/post/{post_id}")
-async def set_post_content(post_id: str, content: str = Body(embed=True)):
+async def set_post_content(post_id: str, content: schema.TranscribeResult):
     try:
         UUID(post_id)
     except ValueError as e:

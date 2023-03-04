@@ -1,9 +1,10 @@
 from typing import List, Tuple
 from uuid import uuid4
 import orjson
-from sqlmodel import Field, Relationship, SQLModel, Session, select
+from sqlmodel import Column, Field, Relationship, SQLModel, Session, select
 from pydantic import UUID4, HttpUrl
 from datetime import datetime
+from astra.core.db import pydantic_column_type
 from astra.core.schema import TranscribeResult, task_states
 from sqlalchemy import func
 from astra.misc.utils import result_stringify, result_to_html, uuid_short
@@ -227,13 +228,17 @@ class Post(PostBase, table=True):
     id: UUID4 = Field(default_factory=uuid4, primary_key=True, unique=True)
 
     title: str = Field()
-    content: str = Field()
+    content: TranscribeResult = Field(sa_column=Column(pydantic_column_type(TranscribeResult)))
 
     user: User = Relationship(back_populates="posts")
     task: Task = Relationship(back_populates="posts")
 
     createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
     updatedAt: datetime | None = Field(default=None, nullable=True)
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
 
     def create(session: Session, post_init: PostBase):
         task = session.get(Task, post_init.task_id)
@@ -247,7 +252,7 @@ class Post(PostBase, table=True):
 
         post = Post(
             title=uuid_short(task.id),
-            content=result_to_html(TranscribeResult(**orjson.loads(job.result))),
+            content=TranscribeResult(**orjson.loads(job.result)),
             user_id=task.user_id,
             task_id=task.id,
         )
@@ -263,13 +268,13 @@ class Post(PostBase, table=True):
 
         post = Post(
             title=uuid_short(task.id),
-            content=result_to_html(TranscribeResult(**orjson.loads(job.result))),
+            content=TranscribeResult(**orjson.loads(job.result)),
             user_id=task.user_id,
             task_id=task.id,
         )
         session.add(post)
         return post
 
-    def set_content(self, new_content: str):
+    def set_content(self, new_content: TranscribeResult):
         self.content = new_content
         self.updatedAt = datetime.now()

@@ -183,7 +183,7 @@ class Whisper(metaclass=utils.Singleton):
 
             # text_w_dates = re.sub(regex, replacer_date, seg["text"], 0, re.UNICODE)
 
-            return Segment(start=start, end=end, text=seg["text"])
+            return Segment(start=start, end=end, text=seg["text"].strip())
 
         segments = [format_segment(seg) for seg in segments]
         return segments

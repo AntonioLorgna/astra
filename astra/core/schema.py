@@ -13,6 +13,10 @@ class Segment(BaseModel):
 
 
 class TranscribeResult(BaseModel):
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
     segments: List[Segment]
     datetime_base: datetime
 
