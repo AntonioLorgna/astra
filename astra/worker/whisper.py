@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, List
+import numpy as np
 from stable_whisper import load_model
 from stable_whisper.stabilization import tighten_timestamps
 from whisper import _download, _MODELS
@@ -55,9 +56,10 @@ class Whisper(metaclass=utils.Singleton):
         self._loaded_models: OrderedDict[str, Any] = OrderedDict()
         self.limit_loaded_models = limit_loaded_models
 
-    def transcribe(self, file: Path, model_name: str, datetime_base: datetime = None):
+    def transcribe(self, file: Path|str|np.ndarray, model_name: str, datetime_base: datetime = None):
         model = self._get_model(model_name=model_name)
-        result = model.transcribe(str(file.resolve()))
+        file = str(file.resolve()) if isinstance(file, Path) else file
+        result = model.transcribe(file)
 
         if datetime_base is None:
             datetime_base = datetime.now()

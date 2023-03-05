@@ -1,5 +1,10 @@
+import io
 from dotenv import load_dotenv
 from os import environ
+
+import numpy as np
+from astra import noise_reduction
+from astra.worker import config
 
 load_dotenv("worker.env")
 environ["WORKER"] = "Yes"
@@ -26,6 +31,12 @@ models_devices = utils.match_device_models(devices, WhisperModels.list_models())
 
 whisper_instance = Whisper(devices, limit_loaded_models=1)
 whisper_instance.download_avaliable_models()
+dtln_models = noise_reduction.load_onnx_models(
+    (
+        config.WHISPER_MODELS_DIR / "model_p1.onnx",
+        config.WHISPER_MODELS_DIR / "model_p2.onnx",
+    )
+)
 
 
 MEDIA_DIR = Path(environ.get("MEDIA_DIR"))
@@ -64,9 +75,13 @@ def transcribe(job_id: str, model: str, filehash: str, file_webhook: str) -> str
             raise Exception(
                 f"Файл повреждён, хэш не совпадает ({r_filehash} != {filehash})"
             )
+        
+    audio, wait = noise_reduction.load_file(filepath)
+    audio = noise_reduction.denoise_onnx(dtln_models[0], dtln_models[1], audio).astype(np.float32)
+    wait()
 
     res = whisper_instance.transcribe(
-        file=filepath, model_name=model, datetime_base=None
+        file=audio, model_name=model, datetime_base=None
     )
 
     if environ.get("DEV_PORT") is None:
