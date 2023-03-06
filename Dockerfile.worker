@@ -1,9 +1,10 @@
 FROM nvidia/cuda:12.0.0-runtime-ubuntu22.04
 
+USER root
 RUN apt update && \
     apt install --no-install-recommends -y build-essential software-properties-common git ffmpeg && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt install --no-install-recommends -y python3.10 python3-pip python3-setuptools python3-distutils && \
+    apt install --no-install-recommends -y python3.10 python3-pip python3-setuptools python3-distutils python3-venv && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
 # set env variables
@@ -15,12 +16,21 @@ WORKDIR /astra
 RUN chown -R $USER:$USER /astra && chmod 755 /astra
 USER $USER
 
+
+# ENV VIRTUAL_ENV=/opt/venv
+# RUN python3 -m venv $VIRTUAL_ENV
+# ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Установка зависимостей в порядке их записи
 COPY requirements_worker.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     python3.10 -m pip install --upgrade pip && \
     cat requirements_worker.txt | xargs -n 1 pip install
     
-COPY . .
+COPY astra/core astra/core
+COPY astra/misc astra/misc
+COPY astra/__init__.py astra/__init__.py
+COPY astra/noise_reduction astra/noise_reduction
+COPY astra/worker astra/worker
 
 

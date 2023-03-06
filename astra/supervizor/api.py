@@ -1,20 +1,27 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from pydantic import UUID4
 from sqlmodel import Session
 from astra.core import celery, db
 from astra.core.schema import TaskInfo, TaskInit, task_states
 from astra.core import models
-from logging import getLogger
+import logging
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 app = FastAPI()
 
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord):
+        return record.getMessage().find("/healthcheck") == -1
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 @app.get("/")
 async def root_redirect():
     return RedirectResponse("/docs")
 
+@app.get("/healthcheck")
+async def heartbeat():
+    return Response("OK")
 
 @app.post("/task")
 async def add_task(task_init: TaskInit):

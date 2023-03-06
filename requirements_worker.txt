@@ -2,6 +2,7 @@ redis~=4.4.2
 celery~=5.2.7
 requests~=2.28.2
 python-dotenv~=0.21.0
+pydantic
 jiwer~=2.5.1
 numpy~=1.23.3
 torch

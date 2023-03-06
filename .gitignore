@@ -136,3 +136,5 @@ dmypy.json
 /temp
 /data
 /_astra_api
+
+/*.tar

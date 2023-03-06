@@ -39,11 +39,11 @@ async def download_tg_file(
 
 
 def build_status_wh():
-    return f"{config.SELF_URL}/status"
+    return f"{config.SELF_URL_EXTERNAL}/api/status"
 
 
 def build_file_wh():
-    return f"{config.SELF_URL}/file"
+    return f"{config.SELF_URL_EXTERNAL}/api/file"
 
 
 def short_uuid(id: str | UUID4, lenght: int = 8):

@@ -65,13 +65,16 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfile.flower
-    command: celery -A astra.celery.app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
+    command: celery -A astra.flower:app flower --host 0.0.0.0 --port=8010 --persistent=True --db=data/flower.db
     env_file:
       - app.env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     ports:
       - "8010:8010"
     volumes:
-      - ./data/astra:/astra/data
+      - ./data:/astra/data
     depends_on:
       redis:
         condition: service_healthy
@@ -81,35 +84,69 @@ services:
       context: .
       dockerfile: ./Dockerfile.supervizor
     command: uvicorn astra.supervizor:app --host 0.0.0.0 --port 8000
-    volumes:
-      - ./data/astra:/astra/data
+    # volumes:
+    #   - ./data/astra:/astra/data
     ports:
       - "8000:8000"
-      - "7000:7000"
+      - "7010:7010"
     env_file:
       - app.env
+    environment:
+      - DEV_PORT=7010
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DB_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/astra
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/docs"]
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/healthcheck"]
       interval: 1s
       timeout: 3s
-      retries: 5
+      retries: 10    
+  sync:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.supervizor
+    command: python3 -m astra.sync
+    # volumes:
+    #   - ./data/astra:/astra/data
+    ports:
+      # - "8000:8000"
+      - "7020:7020"
+    env_file:
+      - app.env
+    environment:
+      - DEV_PORT=7020
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DB_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/astra
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   celery_worker:
     container_name: celery_worker
     build: 
       context: .
       dockerfile: ./Dockerfile.worker
-    command: celery -A astra.worker:app worker -P solo -l info
+    command: celery -A astra.worker:app worker -P gevent -c 1 -l info 
     volumes:
-      - ./data/astra:/astra/data
+      - ./data:/astra/data
     ports:
-      - "7010:7010"
+      - "7030:7030"
     env_file:
       - worker.env
+    environment:
+      - DEV_PORT=7030
+      - GEVENT_SUPPORT=True
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DB_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/astra
+      - WHISPER_AVALIABLE_MODELS=medium,large
     depends_on:
       redis:
         condition: service_healthy
@@ -126,12 +163,24 @@ services:
       dockerfile: ./Dockerfile.api
     command: uvicorn astra.api:app --host 0.0.0.0 --port 8080
     volumes:
-      - ./data/astra:/astra/data
+      - ./data:/astra/data
     ports:
       - "8080:8080"
-      - "7000:7000"
+      - "7040:7040"
     env_file:
       - api.env
+    environment:
+      - DEV_PORT=7040
+      - SELF_URL=http://api:8080/api
+      - SUPERVIZOR_URL=http://supervizor:8000
+    # Can be 'ngrok' for autosearch ngrok endpoint or regular hostname
+      - SELF_URL_EXTERNAL=https://7aaa-128-68-226-170.eu.ngrok.io
+      - MEDIA_DIR="./data/bot/media"
+      - DB_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/astra
+      - TG_TOKEN=5792751719:AAFLRQ3xF7k2KB26WpRgvePS2PG_E5NyhnE
+      - TG_ADMIN_ID_LIST=697111169
+      - START_USER_BANK=100
+      - USE_MODEL=large
     depends_on:
       postgres:
         condition: service_healthy

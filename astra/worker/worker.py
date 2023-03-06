@@ -58,7 +58,7 @@ def transcribe(job_id: str, model: str, filehash: str, file_webhook: str) -> str
         )
         if not r.ok:
             raise Exception(
-                f"Не удаётся скачать файл! (code: {r.status_code} msg: {r.text})"
+                f"Не удаётся скачать файл! (code: {r.status_code} msg: {r.text} url: {file_webhook})"
             )
 
         r.raw.decode_content = True

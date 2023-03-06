@@ -41,11 +41,11 @@ def task_status(
                 continue
 
             logger.error(
-                f"The job '{job.id}' updated successfully, \
-    but result was not sent due to an error. (code {res.status_code})"
+                f"The job '{job.id}' updated successfully, "
+                f"but result was not sent due to an error. (code {res.status_code}, url {task.status_webhook})"
             )
         except Exception as e:
             logger.error(
-                f"The job '{job.id}' updated successfully, \
-    but result was not sent due to an error. ({e})"
+                f"The job '{job.id}' updated successfully, "
+                f"but result was not sent due to an error. ({e})"
             )
