@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  benchmark:
+    container_name: benchmark
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.benchmark
+    command: python3 -m benchmark.benchmark 
+    volumes:
+      - ./data:/benchmark/data
+    environment:
+      - MEDIA_SRC_DIR=data/media
+      - RESULT_DIST_DIR=data/results
+      - MODELS_DIR=data/models
+      - MODELS_TO_BENCH=small,medium,large
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
