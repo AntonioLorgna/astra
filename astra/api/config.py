@@ -3,7 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv("api.env")
-from astra.misc.utils import get_ngrok_hostname
+from astra.core.utils import get_ngrok_hostname
 
 
 SELF_URL: str = environ.get("SELF_URL")
@@ -52,3 +52,6 @@ USE_MODEL = environ.get("USE_MODEL", "tiny")
 if environ.get("START_USER_BANK") is None:
     raise Exception("START_USER_BANK is empty!")
 START_USER_BANK = int(environ.get("START_USER_BANK"))
+
+
+DISABLE_WEBAPP_ONLY_FROM_TG = environ.get("START_USER_BANK") == 'Yes'

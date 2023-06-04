@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from mimetypes import guess_extension
 from typing import Dict, List
 import platform, os, hashlib, base64, threading, asyncio
 from logging import getLogger
@@ -207,3 +208,19 @@ def get_ngrok_hostname():
         return response.json()["tunnels"][0]["public_url"]
     except KeyError or ConnectionError:
         return None
+
+
+def get_filesuffix(mimetype: str):
+    ext = guess_extension(mimetype)
+    suffix = ''
+    if ext is not None:
+        suffix = f".{ext}"
+    return suffix
+
+
+def get_envvar(environ: dict, name: str, empty_ok=False):
+    value = environ.get(name)
+    if (not empty_ok) and (value is None):
+        raise ValueError(f"Envirovement variable '{name}' is empty!")
+    
+    return value

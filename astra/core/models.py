@@ -7,7 +7,7 @@ from datetime import datetime
 from astra.core.db import pydantic_column_type
 from astra.core.schema import TranscribeResult, task_states
 from sqlalchemy import func
-from astra.misc.utils import result_stringify, result_to_html, uuid_short
+from astra.core.utils import result_stringify, result_to_html, uuid_short
 
 from astra.core.whisper_models import WhisperModels
 
@@ -104,7 +104,7 @@ class Job(JobBase, table=True):
     model_quality: int = Field()
     tasks: List["Task"] = Relationship(back_populates="job")
 
-    createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
+    createdAt: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     startedAt: datetime | None = Field(default=None)
     endedAt: datetime | None = Field(default=None)
 
@@ -145,7 +145,7 @@ class Task(TaskBase, table=True):
     account: ServiceAccount = Relationship(back_populates="tasks")
     posts: List["Post"] = Relationship(back_populates="task")
 
-    createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
+    createdAt: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     def create(session: Session, task_init: TaskBase, job_init: JobBase):
         statement = select(Job).where(
@@ -154,6 +154,7 @@ class Task(TaskBase, table=True):
             >= WhisperModels.get_params(job_init.model),  # better or like target model
         )
         exist_jobs = session.exec(statement).all()
+        
         # Sorting by desc model quality
         exist_jobs = sorted(exist_jobs, key=lambda j: j.model_quality, reverse=True)
 
@@ -233,7 +234,7 @@ class Post(PostBase, table=True):
     user: User = Relationship(back_populates="posts")
     task: Task = Relationship(back_populates="posts")
 
-    createdAt: datetime = Field(default_factory=datetime.now, nullable=False)
+    createdAt: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     updatedAt: datetime | None = Field(default=None, nullable=True)
 
     class Config:
@@ -277,4 +278,4 @@ class Post(PostBase, table=True):
 
     def set_content(self, new_content: TranscribeResult):
         self.content = new_content
-        self.updatedAt = datetime.now()
+        self.updatedAt = datetime.utcnow()

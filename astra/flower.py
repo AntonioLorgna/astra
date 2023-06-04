@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
 load_dotenv("app.env")
-from astra.misc.utils import logging_setup
+from astra.core.utils import logging_setup
 import os
 
 os.environ["FLOWER"] = "Yes"

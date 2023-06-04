@@ -1,3 +1,4 @@
+from mimetypes import guess_extension
 from pathlib import Path
 from aiogram.types.mixins import Downloadable
 from pydantic import UUID4
@@ -5,7 +6,7 @@ from urllib.parse import quote
 from functools import lru_cache
 
 from astra.api import config
-from astra.misc.utils import HashIO
+from astra.core.utils import HashIO
 from astra.api import config
 
 
@@ -60,3 +61,11 @@ def get_bot_wh_path():
 @lru_cache(maxsize=None)
 def get_bot_wh_url():
     return config.SELF_URL_EXTERNAL + get_bot_wh_path()
+
+def get_filesuffix(mimetype: str):
+    ext = guess_extension(mimetype)
+    suffix = ''
+    if ext is not None:
+        suffix = f"{ext}"
+    return suffix
+

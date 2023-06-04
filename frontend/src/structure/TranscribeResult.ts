@@ -36,9 +36,9 @@ export class TranscribeResultAdapter {
     }
 
     static json(tr: TranscribeResult) {
-        if (tr.segments.length == 0) {
-            return undefined;
-        }
+        // if (tr.segments.length == 0) {
+        //     return undefined;
+        // }
 
         const ttd = TranscribeResultAdapter.toTimedelta;
         let res: JSONContent = {
@@ -71,6 +71,14 @@ export class TranscribeResultAdapter {
                 type: "paragraph",
                 attrs: {
                     "data-timeline": ttd(seg.end)
+                }
+            })
+        }
+        if (tr.segments.length == 0) {
+            res.content!.push({
+                type: "paragraph",
+                attrs: {
+                    "data-timeline": ttd(0)
                 }
             })
         }

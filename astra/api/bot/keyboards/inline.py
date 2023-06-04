@@ -15,15 +15,15 @@ def app_button(text: str):
     return kb
 
 
-def create_post(kb: InlineKeyboardMarkup = None):
-    if kb is None:
-        kb = InlineKeyboardMarkup()
-    kb.add(
-        InlineKeyboardButton(
-            text="Создать стенограмму из результата", callback_data="create_post"
-        )
-    )
-    return kb
+# def create_post(post_id: str, kb: InlineKeyboardMarkup = None):
+#     if kb is None:
+#         kb = InlineKeyboardMarkup()
+#     kb.add(
+#         InlineKeyboardButton(
+#             text="Создать стенограмму из результата", callback_data=f"cp:{post_id}"
+#         )
+#     )
+#     return kb
 
 
 def edit_post(post_id: str, kb: InlineKeyboardMarkup = None):

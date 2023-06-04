@@ -10,14 +10,13 @@ def load_file(file: str|Path, sr=SAMPLE_RATE):
         ffmpeg
         .input(file)
         .output('pipe:', format="f32le", acodec="pcm_f32le", ac=1, ar=sr)
-        .run_async(pipe_stdout=True)
+        .run_async(pipe_stdout=True, quiet=True)
     )
     audio = audio_bytes_to_arr_f32(process1.stdout.read())
 
-    def wait():
-        process1.stdout.close()
-        process1.wait()
-    return (audio, wait)
+    process1.stdout.close()
+    process1.wait()
+    return audio
 
 def save_file(file: str|Path, audio: np.ndarray, sr=SAMPLE_RATE):
     process2 = (
@@ -25,14 +24,13 @@ def save_file(file: str|Path, audio: np.ndarray, sr=SAMPLE_RATE):
         .input('pipe:', format="f64le", acodec="pcm_f64le", ac=1, ar=sr)
         .output(str(file))
         .overwrite_output()
-        .run_async(pipe_stdin=True)
+        .run_async(pipe_stdin=True, quiet=True)
     )
     process2.stdin.write(audio_arr_to_bytes_f64(audio))
 
-    def wait():
-        process2.stdin.close()
-        process2.wait()
-    return (True, wait)
+    process2.stdin.close()
+    process2.wait()
+    return True
 
 def audio_bytes_to_arr(b: bytes):
     return np.frombuffer(b, np.int16).flatten().astype(np.float32) / 32768.0

@@ -5,10 +5,12 @@ python-dotenv~=0.21.0
 pydantic
 jiwer~=2.5.1
 numpy~=1.23.3
-torch
-git+https://github.com/openai/whisper.git
-stable-ts~=1.0.1
+ctranslate2
+transformers[torch]
+https://github.com/guillaumekln/faster-whisper/archive/refs/heads/master.tar.gz
 onnxruntime
+ffmpeg-python
 debugpy
 gevent
 orjson
+httpx

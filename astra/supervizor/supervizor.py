@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from astra.misc.utils import devport_init, logging_setup
+from astra.core.utils import devport_init, logging_setup
 
 logging_setup(logger)
 devport_init()

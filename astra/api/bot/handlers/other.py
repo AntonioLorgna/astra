@@ -62,20 +62,23 @@ async def process_audio(msg: Message):
     await msg.answer(f"#T{short_uuid(info.id)} Анализ запущен...")
 
 
-async def __create_post(query: CallbackQuery, state: FSMContext):
-    with Session(db.engine) as session:
-        data = await state.get_data()
-        if data.get("task_id") is None:
-            await query.answer(f"Возникла ошибка при создании записи.")
-            return
-        task = session.get(models.Task, data.get("task_id"))
-        post = models.Post.create_from(session, task)
-        session.commit()
+# async def __create_post(query: CallbackQuery, state: FSMContext):
+#     with Session(db.engine) as session:
+#         data = await state.get_data()
+#         if data.get("task_id") is None:
+#             try:
+#                 await query.answer(f"Возникла ошибка при создании записи.")
+#             except:
+#                 pass
+#             return
+#         task = session.get(models.Task, data.get("task_id"))
+#         post = models.Post.create_from(session, task)
+#         session.commit()
 
-        await query.answer(f"Новая запись '{post.id}' добавлена.")
-        await query.message.answer(
-            f"Новая запись '{post.id}' добавлена.", reply_markup=edit_post(post.id)
-        )
+#         await query.answer(f"Новая запись '{post.id}' добавлена.")
+#         await query.message.answer(
+#             f"Новая запись '{post.id}' добавлена.", reply_markup=edit_post(post.id)
+#         )
 
 
 async def __download_post_txt(query: CallbackQuery):
@@ -111,9 +114,9 @@ def register_other_handlers(dp: Dispatcher) -> None:
     # todo: register all other handlers
     dp.register_message_handler(start, commands=["start"])
     dp.register_message_handler(process_audio, content_types=["voice", "audio"])
-    dp.register_callback_query_handler(
-        __create_post, lambda c: c.data == "create_post", state=CREATE_POST
-    )
+    # dp.register_callback_query_handler(
+    #     __create_post, lambda c: c.data == "create_post", state=CREATE_POST
+    # )
     dp.register_callback_query_handler(
         __download_post_txt, lambda c: c.data.startswith("txt:")
     )

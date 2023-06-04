@@ -6,7 +6,7 @@ from astra.api import config
 from aiogram import Bot
 import aiohttp.typedefs as aiohttp_typedefs
 
-from astra.misc.utils import result_stringify
+from astra.core.utils import result_stringify
 
 logger = getLogger(__name__)
 

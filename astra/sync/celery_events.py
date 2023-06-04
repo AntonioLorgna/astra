@@ -34,10 +34,10 @@ def _update_task(job_id: str, set_status: str, set_result=None):
         job.status = set_status
 
         if set_status == schema.task_states.STARTED:
-            job.startedAt = datetime.now()
+            job.startedAt = datetime.utcnow()
 
         if set_result is not None:
-            job.endedAt = datetime.now()
+            job.endedAt = datetime.utcnow()
             job.result = set_result
         session.commit()
 

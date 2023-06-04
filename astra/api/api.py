@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 from sqlmodel import Session
 from astra.api import config
-from astra.api.bot.keyboards.inline import create_post, edit_post
+from astra.api.bot.keyboards.inline import edit_post
 from astra.api.bot.states import CREATE_POST
 from astra.core import db, models, schema
 from astra.api.bot import (
@@ -18,7 +18,7 @@ from astra.api.bot import (
     process_wh_update,
 )
 from astra.api.utils import short_uuid, get_bot_wh_path
-from astra.misc.utils import result_stringify, logging_setup, devport_init
+from astra.core.utils import result_stringify, logging_setup, devport_init
 import logging
 import orjson
 from aiogram.dispatcher import FSMContext
@@ -95,10 +95,13 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
 
         if already_done:
             post_exist = len(task.posts) > 0
-            reply_markup = create_post()
-            if post_exist:
-                post = task.posts[-1]
-                reply_markup = edit_post(post_id=post.id)
+
+            if not post_exist:
+                post = models.Post.create_from(session, task)
+                session.commit()
+
+            post = task.posts[-1]
+            reply_markup = edit_post(post_id=post.id)
 
             await bot.send_message(
                 user_id,
@@ -106,12 +109,16 @@ async def process_task_status(task_info: schema.TaskInfo, already_done=False):
                 reply_markup=reply_markup,
             )
             return
+        
+
+        post = models.Post.create_from(session, task)
+        session.commit()
 
         await bot.send_message(
             user_id,
             f"#T{short_uuid(task_info.id)} Анализ завершён за {execution_time.seconds} сек."
-            f"ожидание составило {waiting_time.seconds} сек.",
-            reply_markup=create_post(),
+            f" Ожидание в очереди составило {waiting_time.seconds} сек.",
+            reply_markup=edit_post(post_id=post.id),
         )
 
 
@@ -130,7 +137,7 @@ async def get_file(job_id: str = Body(embed=True)):
 @app.get("/api/post/{post_id}")
 async def get_post(post_id: str, initData: str = Header(default=None)):
     is_web_app = web_app.check_webapp_signature(config.TG_TOKEN, initData)
-    if not is_web_app:
+    if not is_web_app and config.DISABLE_WEBAPP_ONLY_FROM_TG:
         raise HTTPException(401, f"Use Telegram web app to open this page!")
     try:
         UUID(post_id)
@@ -147,7 +154,7 @@ async def get_post(post_id: str, initData: str = Header(default=None)):
 @app.post("/api/post/{post_id}")
 async def set_post_content(post_id: str, content: schema.TranscribeResult, initData: str = Header(default=None)):
     is_web_app = web_app.check_webapp_signature(config.TG_TOKEN, initData)
-    if not is_web_app:
+    if not is_web_app and config.DISABLE_WEBAPP_ONLY_FROM_TG:
         raise HTTPException(401, f"Use Telegram web app to open this page!")
     try:
         UUID(post_id)

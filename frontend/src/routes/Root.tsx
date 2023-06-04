@@ -59,13 +59,17 @@ const Root = () => {
       })
       .catch(function (error) {
         console.log(error.response?.data?.detail || error.response);
+        showPopup({message: String(error.response?.data?.detail || error.response)});
       })
   }, [post_id]);
 
   useEffect(() => {
     if (editor && post?.content) {
       const jsonContent = TranscribeResultAdapter.json(post.content);
-      if (!jsonContent || !jsonContent.content) return;
+      if (!jsonContent || !jsonContent.content) {
+        editor.commands.setContent("");
+        return;
+      }
       editor.commands.setContent(jsonContent);
     }
   }, [post]);
@@ -83,6 +87,7 @@ const Root = () => {
       })
       .catch(function (error) {
         console.log(error.response?.data?.detail || error.response );
+        showPopup({message: String(error.response?.data?.detail || error.response)});
       })
   }
 
@@ -92,8 +97,9 @@ const Root = () => {
 
   return (
     <>
-      {/* <a href={`/?post_id=${searchParams.get('post_id')}`}>link</a>
-      <pre>{JSON.stringify((window as any).Telegram.WebApp.initData, undefined, 2)}</pre> */}
+      <a href={`/?post_id=${searchParams.get('post_id')}`}>{searchParams.get('post_id')}</a>
+      <pre>{JSON.stringify((window as any).Telegram.WebApp.initData, undefined, 2)}</pre>
+      <br />
       <TipTapEditor editor={editor!} />
       <MainButton
         text="Сохранить"

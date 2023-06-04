@@ -18,7 +18,7 @@ class TranscribeResult(BaseModel):
         orm_mode = True
         allow_population_by_field_name = True
     segments: List[Segment]
-    datetime_base: datetime
+    datetime_base: datetime = Field(default_factory=datetime.utcnow)
 
     def to_txt(self, timestamp=False):
         def secs_to_hhmmss(secs: float | int):

@@ -3,8 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List
 import numpy as np
-from stable_whisper import load_model
-from stable_whisper.stabilization import tighten_timestamps
+from faster_whisper import WhisperModel
+
 from whisper import _download, _MODELS
 from datetime import timedelta, datetime
 from pathlib import Path
@@ -12,7 +12,7 @@ from astra.core.schema import Segment, TranscribeResult
 from astra.core.whisper_models import WhisperModels
 from astra.worker import config
 import re, itertools, calendar, logging, torch
-import astra.misc.utils as utils
+import astra.core.utils as utils
 
 logger = logging.getLogger(__name__)
 

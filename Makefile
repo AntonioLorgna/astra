@@ -37,7 +37,7 @@ setup-app:
 	python3 -m venv ./venv
 	source ./venv/bin/activate && \
 	pip install --upgrade pip  && \
-	(cat requirements_app.txt && cat requirements_flower.txt && cat requirements_worker.txt && cat requirements_api.txt) | xargs -n 1 pip install
+	pip install -r requirements_app.txt -r requirements_flower.txt -r requirements_worker.txt -r requirements_api.txt
 	make setup-frontend
 	sudo chmod -R ugo=rwx ./data
 
